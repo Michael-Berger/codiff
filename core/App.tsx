@@ -1803,8 +1803,8 @@ export default function App() {
   return (
     <div
       className={`app-shell${sidebarCollapsed ? ' sidebar-collapsed' : ''}${
-        isWindowFullScreen ? ' window-fullscreen' : ''
-      }`}
+        commandBarVisible ? ' command-bar-open' : ''
+      }${isWindowFullScreen ? ' window-fullscreen' : ''}`}
       data-sidebar-position={preferences.sidebarPosition}
       style={
         sidebarCollapsed

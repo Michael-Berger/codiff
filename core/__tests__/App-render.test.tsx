@@ -322,9 +322,11 @@ const createNarrativeWalkthroughFixture = (
     version: 4,
   }) satisfies NarrativeWalkthrough;
 
-const dispatchModK = () => {
+const dispatchModifiedKey = (key: string, shiftKey = false) => {
   const isMac = navigator.platform.toLowerCase().includes('mac');
-  window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: !isMac, key: 'k', metaKey: isMac }));
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', { ctrlKey: !isMac, key, metaKey: isMac, shiftKey }),
+  );
 };
 
 const renderAppForOpenFileShortcut = async (file: ChangedFile) => {
@@ -352,6 +354,7 @@ const renderAppForOpenFileShortcut = async (file: ChangedFile) => {
   });
 
   return {
+    container,
     openFile,
     async [Symbol.asyncDispose]() {
       await act(async () => root.unmount());
@@ -717,7 +720,7 @@ test('repository reload restores the selected file when it still exists', async 
     expect(container.querySelector('.codiff-file-header')).not.toBeNull();
   });
   await act(async () => {
-    dispatchModK();
+    dispatchModifiedKey('O', true);
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   expect(openFile).toHaveBeenCalledWith(secondFile.path);
@@ -765,7 +768,7 @@ test('repository reload restores the selected file from the previous source', as
     expect(container.querySelector('.codiff-file-header')).not.toBeNull();
   });
   await act(async () => {
-    dispatchModK();
+    dispatchModifiedKey('O', true);
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   expect(openFile).toHaveBeenCalledWith(secondFile.path);
@@ -1276,18 +1279,33 @@ test('before unload saves the current source and selected file for any reload tr
   expect(getReloadSelectionPath(selection, nextState)).toBe(changedFile.path);
 });
 
-test('Mod+K opens the selected file in the editor', async () => {
+test('Mod+K opens the command bar', async () => {
   const changedFile = createChangedFile('src/app.ts');
   await using app = await renderAppForOpenFileShortcut(changedFile);
 
   await act(async () => {
-    dispatchModK();
+    dispatchModifiedKey('k');
+  });
+
+  expect(app.container.querySelector('.command-bar-input')).not.toBeNull();
+  expect(app.container.querySelector('.app-shell')?.classList.contains('command-bar-open')).toBe(
+    true,
+  );
+  expect(app.openFile).not.toHaveBeenCalled();
+});
+
+test('Mod+Shift+O opens the selected file in the editor', async () => {
+  const changedFile = createChangedFile('src/app.ts');
+  await using app = await renderAppForOpenFileShortcut(changedFile);
+
+  await act(async () => {
+    dispatchModifiedKey('O', true);
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   expect(app.openFile).toHaveBeenCalledWith(changedFile.path);
 });
 
-test('Mod+K does not open deleted files', async () => {
+test('Mod+Shift+O does not open deleted files', async () => {
   const deletedFile = {
     ...createChangedFile('src/removed.ts'),
     status: 'deleted',
@@ -1295,7 +1313,7 @@ test('Mod+K does not open deleted files', async () => {
   await using app = await renderAppForOpenFileShortcut(deletedFile);
 
   await act(async () => {
-    dispatchModK();
+    dispatchModifiedKey('O', true);
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   expect(app.openFile).not.toHaveBeenCalled();
