@@ -133,7 +133,7 @@ import { DiffLineCountBadge } from './Sidebar.tsx';
 import { useCopiedState } from './useCopiedState.ts';
 
 const emptyMarkdownPreviewSectionIds = new Set<string>();
-const emptyExpandedGenerated = new Set<string>();
+const emptyExpandedReviewKeys = new Set<string>();
 const markdownPreviewPlugins = [
   frontmatterPlugin(),
   imagePlugin({
@@ -2504,7 +2504,7 @@ export function ReviewCodeView({
   diffLineHeight = DIFF_LINE_HEIGHT,
   diffStyle,
   disableWorkerPool = false,
-  expandedGenerated = emptyExpandedGenerated,
+  expandedReviewKeys = emptyExpandedReviewKeys,
   files,
   focusCommentId,
   focusCommentRequest,
@@ -2566,7 +2566,7 @@ export function ReviewCodeView({
   diffLineHeight?: number;
   diffStyle: CodiffDiffStyle;
   disableWorkerPool?: boolean;
-  expandedGenerated?: ReadonlySet<string>;
+  expandedReviewKeys?: ReadonlySet<string>;
   files: ReadonlyArray<ChangedFile>;
   focusCommentId: string | null;
   focusCommentRequest: number;
@@ -2838,8 +2838,8 @@ export function ReviewCodeView({
       const isViewed = isReviewIdentityViewed(viewed, reviewIdentity);
       const isCollapsed =
         !forceExpandedPaths.has(file.path) &&
-        !expandedGenerated.has(reviewKey) &&
-        (collapsed.has(reviewKey) || isGeneratedWalkthroughFile(file));
+        !expandedReviewKeys.has(reviewKey) &&
+        (isViewed || collapsed.has(reviewKey) || isGeneratedWalkthroughFile(file));
       const visibleSections = getVisibleDiffSections(file, showWhitespace);
       const lineCount = getDiffLineCountFromVisibleSections(visibleSections);
       const sections = isCollapsed ? visibleSections.slice(0, 1) : visibleSections;
@@ -3066,7 +3066,7 @@ export function ReviewCodeView({
     commentsBySection,
     diffLineHeight,
     diffStyle,
-    expandedGenerated,
+    expandedReviewKeys,
     forceExpandedPaths,
     imagePreviewLayoutPassBySection,
     isReadOnly,

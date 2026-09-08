@@ -6,8 +6,10 @@ import { act, useCallback, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { beforeEach, expect, test, vi } from 'vite-plus/test';
 import { useReviewCommentDrafts } from '../app/hooks/useReviewCommentDrafts.ts';
+import { useReviewFileState } from '../app/hooks/useReviewState.ts';
 import type { ReviewComment, ReviewIdentity } from '../lib/app-types.ts';
 import {
+  getWalkthroughReviewIdentity,
   updateReviewIdentityCollapsed,
   updateReviewIdentityViewed,
 } from '../lib/review-identity.ts';
@@ -175,7 +177,7 @@ test('generated files are collapsed by default and can be explicitly expanded pe
   await view.rerender(
     <ReviewCodeViewHarness
       blocks={blocks}
-      expandedGenerated={new Set([reviewKey])}
+      expandedReviewKeys={new Set([reviewKey])}
       files={[]}
       itemVersionByKey={{ [reviewKey]: 1 }}
     />,
@@ -2734,4 +2736,69 @@ test('line content clicks only ignore text selected on the clicked line', async 
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   expect(onCreateComment).toHaveBeenCalledTimes(4);
+});
+
+test('viewed state and collapse synchronize when switching between tree and walkthrough', async () => {
+  const file = createChangedFile('src/shared.ts', {
+    patch: '@@ -1 +1 @@\n-old\n+new\n@@ -10 +10 @@\n-before\n+after\n',
+  });
+  const blocks = [1, 2].map((ordinal) => ({
+    file,
+    id: `block-${ordinal}`,
+    itemIdPrefix: `block-${ordinal}`,
+    reviewIdentity: getWalkthroughReviewIdentity(file, [`${file.sections[0].id}:h${ordinal}`]),
+  }));
+  function Harness({ walkthrough = false }: { walkthrough?: boolean }) {
+    const {
+      collapsed,
+      expandedReviewKeys,
+      itemVersionByKey,
+      toggleCollapsed,
+      toggleViewed,
+      viewed,
+    } = useReviewFileState();
+    return (
+      <ReviewCodeViewHarness
+        blocks={walkthrough ? blocks : undefined}
+        collapsed={collapsed}
+        expandedReviewKeys={expandedReviewKeys}
+        files={walkthrough ? [] : [file]}
+        itemVersionByKey={itemVersionByKey}
+        onToggleCollapsed={toggleCollapsed}
+        onToggleViewed={toggleViewed}
+        viewed={viewed}
+      />
+    );
+  }
+  await using view = await renderReact(<Harness />);
+  const buttons = () => [
+    ...view.container.querySelectorAll<HTMLButtonElement>('.codiff-viewed-button'),
+  ];
+  const collapsedCount = () => view.container.querySelectorAll('[aria-label="Expand file"]').length;
+  await act(async () => buttons()[0].click());
+  await view.rerender(<Harness walkthrough />);
+  expect(buttons().map((button) => button.getAttribute('aria-pressed'))).toEqual(['true', 'true']);
+  expect(collapsedCount()).toBe(2);
+  // A viewed block can still be opened explicitly.
+  await act(async () =>
+    view.container.querySelector<HTMLButtonElement>('[aria-label="Expand file"]')!.click(),
+  );
+  expect(collapsedCount()).toBe(1);
+  await act(async () => buttons()[0].click());
+  await view.rerender(<Harness />);
+  expect(buttons()[0].getAttribute('aria-pressed')).toBe('false');
+  expect(collapsedCount()).toBe(0);
+  await view.rerender(<Harness walkthrough />);
+  expect(buttons().map((button) => button.getAttribute('aria-pressed'))).toEqual(['false', 'true']);
+  await act(async () => buttons()[0].click());
+  await view.rerender(<Harness />);
+  expect(buttons()[0].getAttribute('aria-pressed')).toBe('true');
+  expect(collapsedCount()).toBe(1);
+  await act(async () => buttons()[0].click());
+  await view.rerender(<Harness walkthrough />);
+  expect(buttons().map((button) => button.getAttribute('aria-pressed'))).toEqual([
+    'false',
+    'false',
+  ]);
+  expect(collapsedCount()).toBe(0);
 });

@@ -221,7 +221,7 @@ export default function App() {
   const sourceSessionsRef = useRef<Map<string, SourceSession>>(new Map());
   const stateRef = useRef<RepositoryState | null>(null);
   const collapsedRef = useRef<Set<string>>(new Set());
-  const expandedGeneratedRef = useRef<Set<string>>(new Set());
+  const expandedReviewKeysRef = useRef<Set<string>>(new Set());
   const preferencesRef = useRef<CodiffPreferences>(defaultPreferences);
   const selectedPathRef = useRef<string | null>(null);
   const sourceRequestRef = useRef(0);
@@ -237,11 +237,11 @@ export default function App() {
   const {
     bumpItemVersion,
     collapsed,
-    expandedGenerated,
+    expandedReviewKeys,
     itemVersionByKey,
     selectedPath,
     setCollapsed,
-    setExpandedGenerated,
+    setExpandedReviewKeys,
     setItemVersionByKey,
     setSelectedPath,
     setViewed,
@@ -598,7 +598,7 @@ export default function App() {
 
     sourceSessionsRef.current.set(getSourceKey(currentState.source), {
       collapsed: new Set(collapsedRef.current),
-      expandedGenerated: new Set(expandedGeneratedRef.current),
+      expandedReviewKeys: new Set(expandedReviewKeysRef.current),
       narrativeWalkthrough: narrativeWalkthroughRef.current,
       reviewComments: reviewCommentsRef.current,
       selectedPath: selectedPathRef.current,
@@ -767,7 +767,7 @@ export default function App() {
       setState(orderedState);
       setLoadError(null);
       setCollapsed(getCollapsedViewedPaths(orderedState.files, nextViewed));
-      setExpandedGenerated(new Set());
+      setExpandedReviewKeys(new Set());
       setItemVersionByKey({});
       resetCommentFocus();
       setReloadDeltaPaths(nextReloadDeltaPaths);
@@ -800,7 +800,7 @@ export default function App() {
     resetCommentFocus,
     scrollPathIntoReview,
     setCollapsed,
-    setExpandedGenerated,
+    setExpandedReviewKeys,
     setItemVersionByKey,
     setMainMode,
     setNarrativeWalkthrough,
@@ -1078,7 +1078,7 @@ export default function App() {
           setReviewComments(getReviewCommentsFromState(orderedState));
           setViewed(nextViewed);
           setCollapsed(getCollapsedViewedPaths(orderedState.files, nextViewed));
-          setExpandedGenerated(new Set());
+          setExpandedReviewKeys(new Set());
           setLoadError(null);
         })
         .catch((error: unknown) => {
@@ -1095,7 +1095,7 @@ export default function App() {
     };
   }, [
     setCollapsed,
-    setExpandedGenerated,
+    setExpandedReviewKeys,
     setItemVersionByKey,
     refreshWalkthroughForState,
     setReviewComments,
@@ -1134,8 +1134,8 @@ export default function App() {
   }, [collapsed]);
 
   useEffect(() => {
-    expandedGeneratedRef.current = expandedGenerated;
-  }, [expandedGenerated]);
+    expandedReviewKeysRef.current = expandedReviewKeys;
+  }, [expandedReviewKeys]);
 
   useEffect(() => {
     preferencesRef.current = preferences;
@@ -1436,7 +1436,7 @@ export default function App() {
               : (orderedState.files[0]?.path ?? null);
           const nextCollapsed =
             session?.collapsed ?? getCollapsedViewedPaths(orderedState.files, nextViewed);
-          const nextExpandedGenerated = session?.expandedGenerated ?? new Set<string>();
+          const nextExpandedReviewKeys = session?.expandedReviewKeys ?? new Set<string>();
           const sessionWalkthroughIsCurrent =
             session?.narrativeWalkthrough != null &&
             !haveChangedFiles(session.walkthroughFiles, orderedState.files);
@@ -1449,7 +1449,7 @@ export default function App() {
           setState(orderedState);
           setHistorySource(getHistorySource(orderedState.source) ?? historySource);
           setCollapsed(new Set(nextCollapsed));
-          setExpandedGenerated(new Set(nextExpandedGenerated));
+          setExpandedReviewKeys(new Set(nextExpandedReviewKeys));
           setItemVersionByKey({});
           setReviewComments(session?.reviewComments ?? getReviewCommentsFromState(orderedState));
           setReloadDeltaPaths(new Set());
@@ -1488,7 +1488,7 @@ export default function App() {
       resetDiffSearch,
       saveCurrentSourceSession,
       setCollapsed,
-      setExpandedGenerated,
+      setExpandedReviewKeys,
       setItemVersionByKey,
       setMainMode,
       setNarrativeWalkthrough,
@@ -1719,7 +1719,7 @@ export default function App() {
     diffLineHeight,
     diffStyle,
     disableWorkerPool: disableCodeViewWorkerPool,
-    expandedGenerated,
+    expandedReviewKeys,
     focusCommentId,
     focusCommentRequest,
     gitIdentity,

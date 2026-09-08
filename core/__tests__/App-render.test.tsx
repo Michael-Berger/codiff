@@ -3778,3 +3778,78 @@ test('Pi not-found walkthrough errors show the agent recovery panel', async () =
   expect(container.textContent).toContain('Pi CLI was not found.');
   expect(container.textContent).toContain('Review Files');
 });
+
+test('commit viewed progress synchronizes tree, walkthrough, and uncovered support without persistence', async () => {
+  const file = createChangedFile('src/app.ts', {
+    patch:
+      'diff --git a/src/app.ts b/src/app.ts\n@@ -1 +1 @@\n-old\n+new\n@@ -10 +10 @@\n-before\n+after\n',
+  });
+  const source = { ref: 'abc1234', type: 'commit' } satisfies ReviewSource;
+  const walkthrough = {
+    ...createNarrativeWalkthroughFixture([{ added: 1, path: file.path, status: file.status }]),
+    source,
+  };
+  window.codiff = createCodiffMock({
+    getLaunchOptions: vi.fn(async () => ({
+      repositoryPathProvided: true,
+      source,
+      walkthrough: true,
+    })),
+    getNarrativeWalkthrough: vi.fn(async () => ({ status: 'ready' as const, walkthrough })),
+    getRepositoryState: vi.fn(async () => ({ ...repositoryState, files: [file], source })),
+  });
+  await using app = await renderReact(<App />);
+  const buttons = () => [
+    ...app.container.querySelectorAll<HTMLButtonElement>('.codiff-viewed-button'),
+  ];
+  const collapsedCount = () => app.container.querySelectorAll('[aria-label="Expand file"]').length;
+  const switchMode = async (label: string) => {
+    const tab = [...app.container.querySelectorAll<HTMLButtonElement>('button[role="tab"]')].find(
+      (button) => button.textContent === label,
+    );
+    expect(tab).toBeDefined();
+    await act(async () => tab!.click());
+  };
+  await waitFor(() => expect(buttons()).toHaveLength(2));
+  expect(app.container.textContent).toContain('Not included in the generated walkthrough.');
+  await act(async () => buttons()[0].click());
+  await switchMode('Tree');
+  await waitFor(() => expect(buttons()).toHaveLength(1));
+  expect(buttons()[0].getAttribute('aria-pressed')).toBe('false');
+  expect(collapsedCount()).toBe(0);
+  await switchMode('Walkthrough');
+  await waitFor(() => expect(buttons()).toHaveLength(2));
+  expect(buttons().map((button) => button.getAttribute('aria-pressed'))).toEqual(['true', 'false']);
+  await act(async () => buttons()[1].click());
+  await switchMode('Tree');
+  await waitFor(() => expect(buttons()).toHaveLength(1));
+  expect(buttons()[0].getAttribute('aria-pressed')).toBe('true');
+  expect(collapsedCount()).toBe(1);
+  const tree = app.container.querySelector('file-tree-container')?.shadowRoot;
+  expect(tree?.querySelector('style[data-codiff-viewed-rows]')?.textContent).toContain(
+    'src/app.ts',
+  );
+  await act(async () => buttons()[0].click());
+  await switchMode('Walkthrough');
+  await waitFor(() => expect(buttons()).toHaveLength(2));
+  expect(buttons().map((button) => button.getAttribute('aria-pressed'))).toEqual([
+    'false',
+    'false',
+  ]);
+  expect(collapsedCount()).toBe(0);
+  await switchMode('Tree');
+  await act(async () => buttons()[0].click());
+  await switchMode('Walkthrough');
+  await waitFor(() => expect(buttons()).toHaveLength(2));
+  expect(buttons().map((button) => button.getAttribute('aria-pressed'))).toEqual(['true', 'true']);
+  expect(collapsedCount()).toBe(2);
+  expect(window.localStorage.getItem('codiff:viewed:/repo')).toBeNull();
+  await app.rerender(<App key="new-session" />);
+  await waitFor(() => {
+    expect(buttons()).toHaveLength(2);
+    expect(buttons().map((button) => button.getAttribute('aria-pressed'))).toEqual([
+      'false',
+      'false',
+    ]);
+  });
+});
