@@ -266,6 +266,7 @@ claude_session_id=""
 opencode_session_id=""
 pi_session_id=""
 agent_backend=""
+agent_target=""
 branch_ref=""
 commit_ref=""
 pull_request_source=""
@@ -281,6 +282,7 @@ expect_codex_session=0
 expect_claude_session=0
 expect_opencode_session=0
 expect_pi_session=0
+expect_agent_target=0
 expect_agent=0
 expect_branch_ref=0
 expect_commit_ref=0
@@ -367,6 +369,12 @@ for arg in "$@"; do
   if [ "$expect_claude_session" -eq 1 ]; then
     claude_session_id="$arg"
     expect_claude_session=0
+    continue
+  fi
+
+  if [ "$expect_agent_target" -eq 1 ]; then
+    agent_target="$arg"
+    expect_agent_target=0
     continue
   fi
 
@@ -477,6 +485,12 @@ for arg in "$@"; do
       ;;
     --claude-session)
       expect_claude_session=1
+      ;;
+    --agent-target)
+      expect_agent_target=1
+      ;;
+    --agent-target=*)
+      agent_target="${arg#--agent-target=}"
       ;;
     --claude-session=*)
       claude_session_id="${arg#--claude-session=}"
@@ -665,6 +679,9 @@ open_codiff() {
   fi
   if [ -n "$agent_backend" ]; then
     set -- --agent "$agent_backend" "$@"
+  fi
+  if [ -n "$agent_target" ]; then
+    set -- --agent-target "$agent_target" "$@"
   fi
   if [ -n "$opencode_session_id" ]; then
     set -- --opencode-session "$opencode_session_id" "$@"

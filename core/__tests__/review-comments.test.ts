@@ -4,13 +4,14 @@ import {
   findReusableReviewCommentDraft,
   getPendingPullRequestReviewComments,
   getRefreshedReviewComments,
+  getReviewCommentSnippet,
   getReviewCommentsFromState,
   getVisibleReviewComments,
   mergeReviewComments,
   toSubmittedReviewComment,
   toPullRequestReviewComment,
 } from '../lib/review-comments.ts';
-import type { RepositoryState } from '../types.ts';
+import type { ChangedFile, RepositoryState } from '../types.ts';
 
 const createReviewComment = (overrides: Partial<ReviewComment>): ReviewComment => ({
   body: 'A comment.',
@@ -380,4 +381,132 @@ test('getRefreshedReviewComments replaces read-only comments with the refreshed 
 
   expect(comments.map((comment) => comment.id)).toEqual(['github:1', 'github:2', 'local:1']);
   expect(comments.find((comment) => comment.id === 'github:1')?.body).toBe('Outdated comment.');
+});
+
+test('getReviewCommentSnippet returns only the anchored line for a single-line comment', () => {
+  const file = {
+    fingerprint: 'snippet-single',
+    path: 'src/a.ts',
+    sections: [
+      {
+        binary: false,
+        id: 'src/a.ts:unstaged',
+        kind: 'unstaged',
+        newFile: {
+          contents: 'const label = "alpha";\nconst value = "needle";\n',
+          name: 'src/a.ts',
+        },
+        oldFile: {
+          contents: 'const label = "alpha";\nconst value = "hay";\n',
+          name: 'src/a.ts',
+        },
+        patch: '',
+      },
+    ],
+    status: 'modified',
+  } satisfies ChangedFile;
+  const comment = createReviewComment({
+    filePath: 'src/a.ts',
+    lineNumber: 2,
+    sectionId: 'src/a.ts:unstaged',
+    side: 'additions',
+  });
+
+  expect(getReviewCommentSnippet(file, file.sections[0]!, comment, false)).toBe(
+    'const value = "needle";',
+  );
+});
+
+test('getReviewCommentSnippet returns the old text for a deletion-side comment', () => {
+  const file = {
+    fingerprint: 'snippet-deletion',
+    path: 'src/a.ts',
+    sections: [
+      {
+        binary: false,
+        id: 'src/a.ts:unstaged',
+        kind: 'unstaged',
+        newFile: {
+          contents: 'const label = "alpha";\nconst value = "needle";\n',
+          name: 'src/a.ts',
+        },
+        oldFile: {
+          contents: 'const label = "alpha";\nconst value = "hay";\n',
+          name: 'src/a.ts',
+        },
+        patch: '',
+      },
+    ],
+    status: 'modified',
+  } satisfies ChangedFile;
+  const comment = createReviewComment({
+    filePath: 'src/a.ts',
+    lineNumber: 2,
+    sectionId: 'src/a.ts:unstaged',
+    side: 'deletions',
+  });
+
+  expect(getReviewCommentSnippet(file, file.sections[0]!, comment, false)).toBe(
+    'const value = "hay";',
+  );
+});
+
+test('getReviewCommentSnippet joins every anchored line for a range comment', () => {
+  const file = {
+    fingerprint: 'snippet-range',
+    path: 'src/a.ts',
+    sections: [
+      {
+        binary: false,
+        id: 'src/a.ts:unstaged',
+        kind: 'unstaged',
+        newFile: {
+          contents: 'const a = 1;\nconst x = 10;\nconst y = 20;\nconst b = 2;\n',
+          name: 'src/a.ts',
+        },
+        oldFile: {
+          contents: 'const a = 1;\nconst b = 2;\n',
+          name: 'src/a.ts',
+        },
+        patch: '',
+      },
+    ],
+    status: 'modified',
+  } satisfies ChangedFile;
+  const comment = createReviewComment({
+    filePath: 'src/a.ts',
+    lineNumber: 3,
+    sectionId: 'src/a.ts:unstaged',
+    side: 'additions',
+    startLineNumber: 2,
+  });
+
+  expect(getReviewCommentSnippet(file, file.sections[0]!, comment, false)).toBe(
+    'const x = 10;\nconst y = 20;',
+  );
+});
+
+test('getReviewCommentSnippet returns nothing for a file-anchored comment', () => {
+  const file = {
+    fingerprint: 'snippet-file',
+    path: 'src/a.ts',
+    sections: [
+      {
+        binary: false,
+        id: 'src/a.ts:unstaged',
+        kind: 'unstaged',
+        patch: '@@ -1 +1 @@\n-old\n+new\n',
+      },
+    ],
+    status: 'modified',
+  } satisfies ChangedFile;
+  const comment = createReviewComment({
+    anchor: 'file',
+    filePath: 'src/a.ts',
+    lineNumber: undefined,
+    sectionId: 'src/a.ts:unstaged',
+    side: undefined,
+  });
+
+  expect(getReviewCommentSnippet(file, file.sections[0]!, comment, false)).toBe('');
 });
