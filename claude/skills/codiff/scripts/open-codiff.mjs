@@ -382,6 +382,7 @@ const args = [
   '--walkthrough-file',
   walkthroughFilePath,
   ...(threadId ? ['--claude-session', threadId] : []),
+  ...(process.env.HERDR_PANE_ID ? ['--agent-target', process.env.HERDR_PANE_ID] : []),
   ...forwardedArgs,
   ...(hasRepositoryTarget ? [] : [sessionCwd]),
 ];

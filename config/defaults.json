@@ -5,6 +5,7 @@
     "claudeModel": "sonnet",
     "codeFontFamily": "",
     "codeFontSize": 13,
+    "commentCommand": "",
     "copyCommentsOnClose": false,
     "diffStyle": "split",
     "editorCommand": "",

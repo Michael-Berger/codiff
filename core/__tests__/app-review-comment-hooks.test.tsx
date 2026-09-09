@@ -53,6 +53,7 @@ function AppReviewCommentsHarness({
   const comments = useAppReviewComments({
     isReviewActionDisabled: () => false,
     onCommentFileChange,
+    showWhitespace: false,
     stateRef,
   });
   onState(comments);
@@ -200,4 +201,58 @@ test('app review comments submit and clear pending review drafts', async () => {
   });
   expect(getState().reviewComments).toEqual([]);
   expect(getState().pullRequestReviewSubmitting).toBeNull();
+});
+
+test('app review comments send a local comment once and mark it sent', async () => {
+  const sendComment = vi.fn(async () => ({ ok: true as const }));
+  window.codiff = { sendComment } as unknown as Window['codiff'];
+  await using view = await renderAppReviewComments(workingTreeState);
+  const { getState } = view;
+
+  await act(async () => {
+    getState().setReviewComments([comment]);
+  });
+  await act(async () => {
+    getState().sendComment(comment.id);
+  });
+  expect(sendComment).toHaveBeenCalledWith({
+    body: comment.body,
+    line: comment.lineNumber,
+    path: comment.filePath,
+    side: comment.side,
+  });
+  await waitFor(() => {
+    expect(getState().reviewComments[0]?.sentAt).toBeTypeOf('number');
+  });
+
+  await act(async () => {
+    getState().sendComment(comment.id);
+  });
+  expect(sendComment).toHaveBeenCalledTimes(1);
+});
+
+test('app review comments surface a failed send without marking the comment sent', async () => {
+  const sendComment = vi.fn(async () => ({
+    error: 'herdr-comment: pane not found',
+    ok: false as const,
+  }));
+  window.codiff = { sendComment } as unknown as Window['codiff'];
+  await using view = await renderAppReviewComments(workingTreeState);
+  const { getState } = view;
+
+  await act(async () => {
+    getState().setReviewComments([comment]);
+  });
+  await act(async () => {
+    getState().sendComment(comment.id);
+  });
+  await waitFor(() => {
+    expect(getState().commentSendError).toBe('herdr-comment: pane not found');
+  });
+  expect(getState().reviewComments[0]?.sentAt).toBeUndefined();
+
+  getState().clearCommentSendError();
+  await waitFor(() => {
+    expect(getState().commentSendError).toBeNull();
+  });
 });

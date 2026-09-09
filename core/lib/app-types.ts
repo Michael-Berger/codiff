@@ -117,6 +117,8 @@ export type ReviewComment = {
     status: 'error' | 'submitting';
   };
   sectionId: string;
+  /** Local UI state only; never persisted or shared. */
+  sentAt?: number;
   side?: 'additions' | 'deletions';
   startLineNumber?: number;
   startSide?: 'additions' | 'deletions';

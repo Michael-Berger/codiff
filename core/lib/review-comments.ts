@@ -269,7 +269,7 @@ export const getReviewCommentsDigest = (comments: ReadonlyArray<ReviewComment>) 
           comment.remoteSubmit?.status ?? ''
         }:${comment.remoteSubmit?.error ?? ''}:${comment.threadId ?? ''}:${
           comment.canResolveThread === true ? '1' : '0'
-        }:${comment.isThreadResolved === true ? '1' : '0'}`,
+        }:${comment.isThreadResolved === true ? '1' : '0'}:${comment.sentAt ?? ''}`,
     )
     .join('\0');
 
@@ -295,6 +295,73 @@ const trimReviewPatchLineTerminator = (line: string) =>
 const getReviewPatchText = (lines: ReadonlyArray<string>, index: number) =>
   trimReviewPatchLineTerminator(lines[index] ?? '');
 
+type ReviewDiffHunk = ReturnType<typeof parseSectionDiffWithOptions>['hunks'][number];
+type ReviewDiffResult = ReturnType<typeof parseSectionDiffWithOptions>;
+
+const buildReviewPatchRows = (fileDiff: ReviewDiffResult, hunk: ReviewDiffHunk) => {
+  const rows: Array<ReviewPatchRow> = [];
+  let deletionLineNumber = hunk.deletionStart;
+  let additionLineNumber = hunk.additionStart;
+
+  for (const content of hunk.hunkContent) {
+    if (content.type === 'context') {
+      for (let index = 0; index < content.lines; index += 1) {
+        rows.push({
+          additionLineNumber: additionLineNumber + index,
+          deletionLineNumber: deletionLineNumber + index,
+          patchLineIndex: content.additionLineIndex + index,
+          patchLines: fileDiff.additionLines,
+          prefix: ' ',
+        });
+      }
+      deletionLineNumber += content.lines;
+      additionLineNumber += content.lines;
+      continue;
+    }
+
+    for (let index = 0; index < content.deletions; index += 1) {
+      rows.push({
+        deletionLineNumber: deletionLineNumber + index,
+        patchLineIndex: content.deletionLineIndex + index,
+        patchLines: fileDiff.deletionLines,
+        prefix: '-',
+        side: 'deletions',
+      });
+    }
+
+    for (let index = 0; index < content.additions; index += 1) {
+      rows.push({
+        additionLineNumber: additionLineNumber + index,
+        patchLineIndex: content.additionLineIndex + index,
+        patchLines: fileDiff.additionLines,
+        prefix: '+',
+        side: 'additions',
+      });
+    }
+
+    deletionLineNumber += content.deletions;
+    additionLineNumber += content.additions;
+  }
+
+  return rows;
+};
+
+const locateReviewCommentRows = (rows: ReadonlyArray<ReviewPatchRow>, comment: ReviewComment) => {
+  const side = comment.side ?? 'additions';
+  const startLine = comment.startLineNumber ?? comment.lineNumber ?? 1;
+  const startSide = getReviewCommentStartSide(comment) ?? side;
+  const endLine = comment.lineNumber ?? 1;
+  const targetIndex = rows.findIndex((row) => matchesReviewPatchLine(row, endLine, side));
+  if (targetIndex === -1) {
+    return null;
+  }
+
+  const rangeStartIndex = rows.findIndex((row) =>
+    matchesReviewPatchLine(row, startLine, startSide),
+  );
+  return { anchorStart: rangeStartIndex === -1 ? targetIndex : rangeStartIndex, targetIndex };
+};
+
 const getReviewCommentPatchContext = (
   file: ChangedFile,
   section: DiffSection,
@@ -307,64 +374,13 @@ const getReviewCommentPatchContext = (
   const fileDiff = parseSectionDiffWithOptions(file, section, showWhitespace);
 
   for (const hunk of fileDiff.hunks) {
-    const rows: Array<ReviewPatchRow> = [];
-    let deletionLineNumber = hunk.deletionStart;
-    let additionLineNumber = hunk.additionStart;
-
-    for (const content of hunk.hunkContent) {
-      if (content.type === 'context') {
-        for (let index = 0; index < content.lines; index += 1) {
-          rows.push({
-            additionLineNumber: additionLineNumber + index,
-            deletionLineNumber: deletionLineNumber + index,
-            patchLineIndex: content.additionLineIndex + index,
-            patchLines: fileDiff.additionLines,
-            prefix: ' ',
-          });
-        }
-        deletionLineNumber += content.lines;
-        additionLineNumber += content.lines;
-        continue;
-      }
-
-      for (let index = 0; index < content.deletions; index += 1) {
-        rows.push({
-          deletionLineNumber: deletionLineNumber + index,
-          patchLineIndex: content.deletionLineIndex + index,
-          patchLines: fileDiff.deletionLines,
-          prefix: '-',
-          side: 'deletions',
-        });
-      }
-
-      for (let index = 0; index < content.additions; index += 1) {
-        rows.push({
-          additionLineNumber: additionLineNumber + index,
-          patchLineIndex: content.additionLineIndex + index,
-          patchLines: fileDiff.additionLines,
-          prefix: '+',
-          side: 'additions',
-        });
-      }
-
-      deletionLineNumber += content.deletions;
-      additionLineNumber += content.additions;
-    }
-
-    const side = comment.side ?? 'additions';
-    const startLine = comment.startLineNumber ?? comment.lineNumber ?? 1;
-    const startSide = getReviewCommentStartSide(comment) ?? side;
-    const endLine = comment.lineNumber ?? 1;
-    const targetIndex = rows.findIndex((row) => matchesReviewPatchLine(row, endLine, side));
-    const rangeStartIndex = rows.findIndex((row) =>
-      matchesReviewPatchLine(row, startLine, startSide),
-    );
-
-    if (targetIndex === -1) {
+    const rows = buildReviewPatchRows(fileDiff, hunk);
+    const location = locateReviewCommentRows(rows, comment);
+    if (!location) {
       continue;
     }
 
-    const anchorStart = rangeStartIndex === -1 ? targetIndex : rangeStartIndex;
+    const { anchorStart, targetIndex } = location;
     const start = Math.max(0, Math.min(anchorStart, targetIndex) - 3);
     const end = Math.min(rows.length, Math.max(anchorStart, targetIndex) + 4);
     const context = rows.slice(start, end).map((row) => {
@@ -384,6 +400,39 @@ const getReviewCommentPatchContext = (
   }
 
   return section.summary?.reason || section.patch.trim() || 'No patch context available.';
+};
+
+const MAX_REVIEW_COMMENT_SNIPPET_LINES = 6;
+
+export const getReviewCommentSnippet = (
+  file: ChangedFile,
+  section: DiffSection,
+  comment: ReviewComment,
+  showWhitespace: boolean,
+) => {
+  if (isFileReviewComment(comment)) {
+    return '';
+  }
+  const fileDiff = parseSectionDiffWithOptions(file, section, showWhitespace);
+
+  for (const hunk of fileDiff.hunks) {
+    const rows = buildReviewPatchRows(fileDiff, hunk);
+    const location = locateReviewCommentRows(rows, comment);
+    if (!location) {
+      continue;
+    }
+
+    const { anchorStart, targetIndex } = location;
+    const start = Math.min(anchorStart, targetIndex);
+    const end = Math.max(anchorStart, targetIndex) + 1;
+    return rows
+      .slice(start, end)
+      .slice(0, MAX_REVIEW_COMMENT_SNIPPET_LINES)
+      .map((row) => getReviewPatchText(row.patchLines, row.patchLineIndex))
+      .join('\n');
+  }
+
+  return '';
 };
 
 export const buildReviewCommentsMarkdown = (
