@@ -1,9 +1,104 @@
 # Codiff
 
+> [!NOTE]
+> **This is a fork of [nkzw-tech/codiff](https://github.com/nkzw-tech/codiff).** It adds one
+> feature: review comments can be sent straight to a running coding agent instead of copied to the
+> clipboard. Everything else is unchanged. See [What this fork adds](#what-this-fork-adds).
+
 Codiff is a beautiful, minimal, local diff viewer for reviewing Git changes and committing them.
 
 <img width="48%" src="https://github.com/user-attachments/assets/9801587d-5879-461a-b375-9fbfa3c5f25d" />
 <img width="48%" src="https://github.com/user-attachments/assets/8b92902b-1112-4553-ba59-74e84a61ca7d" />
+
+## What this fork adds
+
+Upstream Codiff lets you copy pending review comments as Markdown and paste them into an agent
+yourself. This fork adds a `commentCommand` setting: when it is set, pressing
+<kbd>Mod</kbd>+<kbd>Enter</kbd> on a comment runs that command with the comment's details, so the
+comment lands in your agent while you keep reviewing.
+
+### How it works
+
+1. You write a comment on a local review (a working tree, commit, branch, or range; pull request
+   reviews still post to GitHub or GitLab as before).
+2. You press <kbd>Mod</kbd>+<kbd>Enter</kbd>. With no `commentCommand` set, this only leaves the
+   comment box as before.
+3. Codiff runs your command once for that comment. The comment body is written to the command's
+   stdin, and placeholders in the command string are filled in:
+
+   | Placeholder | Value                                                             |
+   | ----------- | ----------------------------------------------------------------- |
+   | `{repo}`    | Absolute path of the repository root                              |
+   | `{file}`    | Absolute path of the commented file                               |
+   | `{path}`    | Repository-relative path of the commented file                    |
+   | `{line}`    | First line of the comment's range                                 |
+   | `{endLine}` | Last line of a range comment, or empty for a single line          |
+   | `{side}`    | `additions` or `deletions`                                        |
+   | `{snippet}` | The source lines the comment is anchored to (at most six)         |
+   | `{body}`    | The comment text, trimmed. Also always written to stdin           |
+   | `{target}`  | The value passed to `codiff --agent-target`, or empty (see below) |
+
+4. On success the comment shows a **Sent** marker and will not be sent again. On failure Codiff
+   shows the command's first line of stderr in a toast and leaves the comment unsent, so
+   <kbd>Mod</kbd>+<kbd>Enter</kbd> retries it.
+
+The command runs without a shell, so a multi-line body or snippet is safe in an argument. Empty
+placeholders expand to an empty string.
+
+### Configure it
+
+Open `Codiff > Open Config File...` and add `commentCommand` under `settings` in
+`~/.codiff/codiff.jsonc`. Any executable on your login shell's PATH works. Two examples:
+
+```jsonc
+{
+  "settings": {
+    // Append each comment to a file.
+    "commentCommand": "sh -c \"cat >> /tmp/review-comments.md\"",
+  },
+}
+```
+
+```jsonc
+{
+  "settings": {
+    // Paste the comment into the Claude Code agent running in Herdr, and submit it.
+    "commentCommand": "herdr-comment --file {file} --line {line} --end {endLine} --snippet {snippet} --pane {target} --send",
+  },
+}
+```
+
+The second example uses the bridge script shipped in [`contrib/herdr`](contrib/herdr/README.md).
+Leave `commentCommand` empty (the default) to turn the feature off.
+
+The config file is watched, so the change applies to open windows without a restart. For editor
+completion on the new key, point `$schema` at this fork instead of upstream:
+`https://raw.githubusercontent.com/Michael-Berger/codiff/feat/comment-command/core/config/codiff-config.schema.json`.
+
+### Tell the command where to send comments
+
+`codiff` accepts a new flag, `--agent-target <string>`, and the matching environment variable
+`CODIFF_AGENT_TARGET`. Codiff does not interpret the value; it is handed to your command as
+`{target}`. Use it to identify the agent session that should receive the comments, for example the
+terminal pane the review was launched from.
+
+The bundled `codiff` skill for Claude Code forwards `HERDR_PANE_ID` as `--agent-target`
+automatically, so a walkthrough opened from a Claude Code session running in Herdr routes its
+comments back to that session with no extra setup.
+
+### Install the fork
+
+Build it locally, since fork builds are unsigned and not published to Homebrew:
+
+```bash
+pnpm install
+pnpm exec vpr make:mac
+```
+
+Copy `out/make/**/Codiff.app` to `/Applications`. If you installed upstream through Homebrew, run
+`brew uninstall --cask codiff` first so a `brew upgrade` cannot overwrite the fork. macOS blocks the
+unsigned app once; right-click it and choose Open, or run
+`xattr -dr com.apple.quarantine /Applications/Codiff.app`.
 
 ## Why Codiff
 
@@ -141,6 +236,7 @@ counts; when it is `false`, Codiff hides those changes from the working-tree rev
     "claudeModel": "claude-sonnet-4-6",
     "codeFontFamily": "",
     "codeFontSize": 13,
+    "commentCommand": "",
     "copyCommentsOnClose": false,
     "diffStyle": "split",
     "editorCommand": "",
@@ -172,6 +268,9 @@ counts; when it is `false`, Codiff hides those changes from the working-tree rev
 Set `settings.editorCommand` to customize file opening. Use `{file}` for the selected file,
 `{line}` for its line number when available, and `{repo}` for the repository root, for example
 `"subl \"{repo}\" \"{file}\""`.
+Set `settings.commentCommand` to send a local review comment to a command with
+<kbd>Mod</kbd>+<kbd>Enter</kbd>; see [What this fork adds](#what-this-fork-adds) for the
+placeholders it accepts.
 Set `settings.sidebarPosition` to `left` or `right` to choose which side of the desktop window shows
 the file sidebar.
 
