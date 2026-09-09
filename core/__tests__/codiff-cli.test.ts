@@ -1179,6 +1179,7 @@ test('Claude skill launcher uses the session cwd and forwards --agent claude', a
         CLAUDE_CONFIG_DIR: join(home, '.claude'),
         CLAUDE_SESSION_ID: sessionId,
         CODIFF_COMMAND: logger.commandPath,
+        HERDR_PANE_ID: '',
       },
     },
   );
@@ -1192,6 +1193,47 @@ test('Claude skill launcher uses the session cwd and forwards --agent claude', a
     '--claude-session',
     sessionId,
     'HEAD',
+    repositoryPath,
+  ]);
+});
+
+test('Claude skill launcher forwards --agent-target from HERDR_PANE_ID', async () => {
+  await using logger = await createFakeCommandLogger('codiff-claude-launcher-', 'codiff');
+  const home = join(logger.directory, 'home');
+  const repositoryPath = join(logger.directory, 'repo');
+  const walkthroughFile = join(logger.directory, 'walkthrough.json');
+
+  await mkdir(repositoryPath, { recursive: true });
+  await writeFile(walkthroughFile, '{}');
+
+  await execFileAsync(
+    process.execPath,
+    [
+      resolve('claude/skills/codiff/scripts/open-codiff.mjs'),
+      '--file',
+      walkthroughFile,
+      repositoryPath,
+    ],
+    {
+      cwd: resolve('claude/skills/codiff'),
+      env: {
+        ...logger.env,
+        CLAUDE_CONFIG_DIR: join(home, '.claude'),
+        CLAUDE_SESSION_ID: '',
+        CODIFF_COMMAND: logger.commandPath,
+        HERDR_PANE_ID: 'herdr-pane-7',
+      },
+    },
+  );
+
+  expect(await logger.readArgs()).toEqual([
+    '-w',
+    '--agent',
+    'claude',
+    '--walkthrough-file',
+    walkthroughFile,
+    '--agent-target',
+    'herdr-pane-7',
     repositoryPath,
   ]);
 });

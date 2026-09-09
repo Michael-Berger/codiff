@@ -18,6 +18,7 @@ const { getCommandLineLaunchOptions, getCommandLineRepositoryPath, getInitialRep
       commandLine: ReadonlyArray<string>,
       fallbackPath?: string,
     ) => {
+      agentTarget?: string;
       applyUpdate?: boolean;
       codexSessionId?: string;
       planFile?: string;
@@ -94,6 +95,19 @@ test('parses the OpenCode agent override', () => {
       repositoryPathProvided: true,
     },
   });
+});
+
+test('parses --agent-target as a CLI flag', () => {
+  expect(readCommandLine(['codiff', '--agent-target', 'herdr-pane-1', '/repo'])).toMatchObject({
+    launchOptions: {
+      agentTarget: 'herdr-pane-1',
+      repositoryPathProvided: true,
+    },
+  });
+});
+
+test('leaves agentTarget unset when no --agent-target flag is given', () => {
+  expect(getCommandLineLaunchOptions(['codiff', '/repo']).agentTarget).toBeUndefined();
 });
 
 test.sequential('plan command lines do not inspect Git refs', async () => {

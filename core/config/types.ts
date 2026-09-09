@@ -8,6 +8,7 @@ export type CodiffSettings = {
   claudeModel: string;
   codeFontFamily: string;
   codeFontSize: number;
+  commentCommand: string;
   copyCommentsOnClose: boolean;
   diffStyle: CodiffDiffStyle;
   editorCommand: string;

@@ -178,6 +178,7 @@ export function ReviewCodeViewHarness({ files, ...overrides }: ReviewCodeViewHar
       onOpenFile={() => {}}
       onSaveCommentEdit={() => {}}
       onSelectPathFromScroll={() => {}}
+      onSendComment={() => {}}
       onSubmitComment={() => {}}
       onToggleCollapsed={() => {}}
       onToggleViewed={() => {}}
@@ -188,6 +189,7 @@ export function ReviewCodeViewHarness({ files, ...overrides }: ReviewCodeViewHar
       showWhitespace={false}
       source={source}
       supportsReviewCommentActions={false}
+      supportsSendComment={false}
       viewed={{}}
       walkthroughNotes={new Map()}
       wordWrap={false}

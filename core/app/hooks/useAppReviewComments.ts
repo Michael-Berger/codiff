@@ -1,8 +1,9 @@
-import { useCallback, useState, type RefObject } from 'react';
+import { useCallback, useRef, useState, type RefObject } from 'react';
 import type { ReviewComment } from '../../lib/app-types.ts';
 import {
   getPendingPullRequestReviewComments,
   getReviewCommentRangeProps,
+  getReviewCommentSnippet,
   toPullRequestReviewComment,
 } from '../../lib/review-comments.ts';
 import type {
@@ -19,17 +20,21 @@ type UseAppReviewCommentsOptions = {
     event: PullRequestReviewEvent,
   ) => boolean;
   onCommentFileChange: (filePath: string) => void;
+  showWhitespace: boolean;
   stateRef: RefObject<RepositoryState | null>;
 };
 
 export function useAppReviewComments({
   isReviewActionDisabled,
   onCommentFileChange,
+  showWhitespace,
   stateRef,
 }: UseAppReviewCommentsOptions) {
   const [reviewComments, setReviewComments] = useState<ReadonlyArray<ReviewComment>>([]);
   const [pullRequestReviewSubmitting, setPullRequestReviewSubmitting] =
     useState<PullRequestReviewEvent | null>(null);
+  const [commentSendError, setCommentSendError] = useState<string | null>(null);
+  const sendingCommentIdsRef = useRef(new Set<string>());
   const commentDrafts = useReviewCommentDrafts({
     comments: reviewComments,
     onCommentFileChange,
@@ -247,15 +252,76 @@ export function useAppReviewComments({
     ],
   );
 
+  const clearCommentSendError = useCallback(() => setCommentSendError(null), []);
+
+  const sendComment = useCallback(
+    (commentId: string) => {
+      const currentState = stateRef.current;
+      const comment = reviewCommentsRef.current.find((candidate) => candidate.id === commentId);
+      if (
+        !currentState ||
+        !comment ||
+        comment.isReadOnly ||
+        comment.sentAt != null ||
+        comment.body.trim().length === 0 ||
+        sendingCommentIdsRef.current.has(commentId)
+      ) {
+        return;
+      }
+
+      const file = currentState.files.find((candidate) => candidate.path === comment.filePath);
+      const section = file?.sections.find((candidate) => candidate.id === comment.sectionId);
+      const snippet =
+        file && section ? getReviewCommentSnippet(file, section, comment, showWhitespace) : '';
+      const isRange =
+        comment.startLineNumber != null && comment.startLineNumber !== comment.lineNumber;
+
+      sendingCommentIdsRef.current.add(commentId);
+      void window.codiff
+        .sendComment({
+          body: comment.body,
+          ...(isRange ? { endLine: comment.lineNumber } : {}),
+          ...((isRange ? comment.startLineNumber : comment.lineNumber) != null
+            ? { line: isRange ? comment.startLineNumber : comment.lineNumber }
+            : {}),
+          path: comment.filePath,
+          ...(comment.side ? { side: comment.side } : {}),
+          ...(snippet ? { snippet } : {}),
+        })
+        .then((result) => {
+          if (result.ok) {
+            setReviewComments((current) =>
+              current.map((candidate) =>
+                candidate.id === commentId ? { ...candidate, sentAt: Date.now() } : candidate,
+              ),
+            );
+            onCommentFileChange(comment.filePath);
+          } else {
+            setCommentSendError(result.error);
+          }
+        })
+        .catch((error: unknown) => {
+          setCommentSendError(error instanceof Error ? error.message : String(error));
+        })
+        .finally(() => {
+          sendingCommentIdsRef.current.delete(commentId);
+        });
+    },
+    [onCommentFileChange, reviewCommentsRef, showWhitespace, stateRef],
+  );
+
   const hasPendingReviewComments =
     getPendingPullRequestReviewComments(reviewComments, activeReviewCommentDraftState).length > 0;
 
   return {
     ...commentDrafts,
     askCodex,
+    clearCommentSendError,
+    commentSendError,
     hasPendingReviewComments,
     pullRequestReviewSubmitting,
     reviewComments,
+    sendComment,
     setReviewComments,
     submitPullRequestComment,
     submitPullRequestReview,

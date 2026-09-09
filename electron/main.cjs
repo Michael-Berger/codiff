@@ -79,6 +79,8 @@ const {
   getLaunchPath,
 } = require('./main/command-line.cjs');
 const { createSkillInstaller } = require('./main/agent-skill.cjs');
+const { sendComment } = require('./main/comment-command.cjs');
+const { getCommandEnvironment } = require('./login-shell-environment.cjs');
 const { createEditorOpener } = require('./main/editor.cjs');
 const { createDefinitionSearchCoordinator } = require('./definition-search.cjs');
 const { createTerminalHelper } = require('./main/terminal-helper.cjs');
@@ -1886,6 +1888,16 @@ ipcMain.handle('codiff:openFile', async (event, filePath, lineNumber) => {
     await shell.openPath(repositoryRoot);
   }
 });
+
+ipcMain.handle('codiff:sendComment', async (event, request) =>
+  sendComment({
+    commentCommand: config.settings.commentCommand,
+    env: await getCommandEnvironment(),
+    repositoryRoot: getWindowRepositoryRoot(event.sender.id),
+    request,
+    target: windowLaunchOptions.get(event.sender.id)?.agentTarget,
+  }),
+);
 
 ipcMain.handle('codiff:showInFolder', (event, filePath) => {
   const repositoryRoot = getWindowRepositoryRoot(event.sender.id);

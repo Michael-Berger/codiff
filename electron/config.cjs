@@ -285,6 +285,10 @@ const mergeConfig = (raw) => {
           : defaults.settings.claudeModel,
       codeFontFamily: normalizeCodeFontFamily(rawSettings.codeFontFamily),
       codeFontSize: normalizeCodeFontSize(rawSettings.codeFontSize),
+      commentCommand:
+        typeof rawSettings.commentCommand === 'string'
+          ? rawSettings.commentCommand
+          : defaults.settings.commentCommand,
       copyCommentsOnClose:
         typeof rawSettings.copyCommentsOnClose === 'boolean'
           ? rawSettings.copyCommentsOnClose
