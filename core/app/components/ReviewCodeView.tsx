@@ -475,6 +475,9 @@ const canSubmitComment = (comment: ReviewComment) =>
   comment.body.trim().length > 0 &&
   comment.remoteSubmit?.status !== 'submitting';
 
+const canSendComment = (comment: ReviewComment) =>
+  !comment.isReadOnly && comment.body.trim().length > 0 && comment.sentAt == null;
+
 const withCommentBody = (comment: ReviewComment, body: string): ReviewComment =>
   comment.body === body ? comment : { ...comment, body };
 
@@ -1398,9 +1401,11 @@ function ReviewCommentEditor({
   onCommentFocus,
   onDeleteComment,
   onSaveCommentEdit,
+  onSendComment,
   onSubmitComment,
   onUpdateComment,
   supportsReviewCommentActions,
+  supportsSendComment,
 }: {
   agentId: 'codex' | 'claude' | 'opencode' | 'pi';
   agentLabel: string;
@@ -1416,9 +1421,11 @@ function ReviewCommentEditor({
   onCommentFocus: (comment: ReviewComment) => void;
   onDeleteComment: (commentId: string) => void;
   onSaveCommentEdit: (commentId: string, body: string) => Promise<void> | void;
+  onSendComment: (commentId: string) => void;
   onSubmitComment: (commentId: string) => void;
   onUpdateComment: (commentId: string, body: string) => void;
   supportsReviewCommentActions: boolean;
+  supportsSendComment: boolean;
 }) {
   const [editState, setEditState] = useState(() => ({
     commentId: comment.id,
@@ -1560,6 +1567,14 @@ function ReviewCommentEditor({
     }
   }, [comment.id, flushDraft, onSubmitComment]);
 
+  const handleSendComment = useCallback(() => {
+    const flushed = flushDraft();
+    if (canSendComment(flushed)) {
+      onSendComment(comment.id);
+    }
+    (document.activeElement as HTMLElement | null)?.blur();
+  }, [comment.id, flushDraft, onSendComment]);
+
   const handleStartEdit = useCallback(() => {
     if (!canEditExistingComment || editSubmitting) {
       return;
@@ -1682,7 +1697,11 @@ function ReviewCommentEditor({
 
         event.preventDefault();
         event.stopPropagation();
-        handleAddComment();
+        if (supportsSendComment) {
+          handleSendComment();
+        } else {
+          handleAddComment();
+        }
         return;
       }
 
@@ -1718,10 +1737,12 @@ function ReviewCommentEditor({
       draft,
       handleAddComment,
       handleAskCodex,
+      handleSendComment,
       handleSubmitComment,
       keymap,
       onDeleteComment,
       supportsReviewCommentActions,
+      supportsSendComment,
     ],
   );
   return (
@@ -1806,6 +1827,12 @@ function ReviewCommentEditor({
                 />
                 Ask
               </button>
+            ) : null}
+            {supportsSendComment && !comment.isReadOnly && comment.sentAt != null ? (
+              <span className="review-comment-sent-marker" title="Sent">
+                <Check aria-hidden className="review-comment-sent-icon" size={13} weight="bold" />
+                Sent
+              </span>
             ) : null}
             {supportsReviewCommentActions && !comment.isReadOnly ? (
               <button
@@ -2001,9 +2028,11 @@ function ReviewCommentThreadGroup({
   onReplyToThread,
   onResolveThread = noopResolveThread,
   onSaveCommentEdit,
+  onSendComment,
   onSubmitComment,
   onUpdateComment,
   supportsReviewCommentActions,
+  supportsSendComment,
 }: {
   agentId: 'codex' | 'claude' | 'opencode' | 'pi';
   agentLabel: string;
@@ -2021,9 +2050,11 @@ function ReviewCommentThreadGroup({
   onReplyToThread: (threadId: string, comment: ReviewComment) => void;
   onResolveThread?: (threadId: string, resolved: boolean) => Promise<void> | void;
   onSaveCommentEdit: (commentId: string, body: string) => Promise<void> | void;
+  onSendComment: (commentId: string) => void;
   onSubmitComment: (commentId: string) => void;
   onUpdateComment: (commentId: string, body: string) => void;
   supportsReviewCommentActions: boolean;
+  supportsSendComment: boolean;
 }) {
   const [resolveState, setResolveState] = useState<{
     error: string | null;
@@ -2107,9 +2138,11 @@ function ReviewCommentThreadGroup({
             onCommentFocus={onCommentFocus}
             onDeleteComment={onDeleteComment}
             onSaveCommentEdit={onSaveCommentEdit}
+            onSendComment={onSendComment}
             onSubmitComment={onSubmitComment}
             onUpdateComment={onUpdateComment}
             supportsReviewCommentActions={supportsReviewCommentActions}
+            supportsSendComment={supportsSendComment}
           />
         );
       })}
@@ -2173,9 +2206,11 @@ function ReviewAnnotation({
   onReplyToThread,
   onResolveThread = noopResolveThread,
   onSaveCommentEdit,
+  onSendComment,
   onSubmitComment,
   onUpdateComment,
   supportsReviewCommentActions,
+  supportsSendComment,
 }: {
   agentId: 'codex' | 'claude' | 'opencode' | 'pi';
   agentLabel: string;
@@ -2194,9 +2229,11 @@ function ReviewAnnotation({
   onReplyToThread: (threadId: string, comment: ReviewComment) => void;
   onResolveThread?: (threadId: string, resolved: boolean) => Promise<void> | void;
   onSaveCommentEdit: (commentId: string, body: string) => Promise<void> | void;
+  onSendComment: (commentId: string) => void;
   onSubmitComment: (commentId: string) => void;
   onUpdateComment: (commentId: string, body: string) => void;
   supportsReviewCommentActions: boolean;
+  supportsSendComment: boolean;
 }) {
   const focusEditorRef = useRef<MarkdownEditorHandle>(null);
   const threadRef = useRef<HTMLDivElement>(null);
@@ -2260,9 +2297,11 @@ function ReviewAnnotation({
           onReplyToThread={onReplyToThread}
           onResolveThread={onResolveThread}
           onSaveCommentEdit={onSaveCommentEdit}
+          onSendComment={onSendComment}
           onSubmitComment={onSubmitComment}
           onUpdateComment={onUpdateComment}
           supportsReviewCommentActions={supportsReviewCommentActions}
+          supportsSendComment={supportsSendComment}
         />
       ))}
     </div>
@@ -2645,6 +2684,7 @@ export function ReviewCodeView({
   onResolveThread = noopResolveThread,
   onSaveCommentEdit,
   onSelectPathFromScroll,
+  onSendComment,
   onSubmitComment,
   onToggleCollapsed,
   onToggleViewed,
@@ -2662,6 +2702,7 @@ export function ReviewCodeView({
   sourceDescriptionActions,
   sourceDescriptionFooter,
   supportsReviewCommentActions,
+  supportsSendComment,
   theme = 'system',
   viewed,
   walkthroughNotes,
@@ -2709,6 +2750,7 @@ export function ReviewCodeView({
   onResolveThread?: (threadId: string, resolved: boolean) => Promise<void> | void;
   onSaveCommentEdit: (commentId: string, body: string) => Promise<void> | void;
   onSelectPathFromScroll: (viewer: CodeViewInstance) => void;
+  onSendComment: (commentId: string) => void;
   onSubmitComment: (commentId: string) => void;
   onToggleCollapsed: (file: ChangedFile, isCollapsed: boolean, reviewKey: string) => void;
   onToggleViewed: (file: ChangedFile, isViewed: boolean, reviewIdentity: ReviewIdentity) => void;
@@ -2726,6 +2768,7 @@ export function ReviewCodeView({
   sourceDescriptionActions?: ReactNode;
   sourceDescriptionFooter?: ReactNode;
   supportsReviewCommentActions: boolean;
+  supportsSendComment: boolean;
   theme?: CodiffPreferences['theme'];
   viewed: Record<string, string>;
   walkthroughNotes: ReadonlyMap<string, WalkthroughNote>;
@@ -4710,9 +4753,11 @@ export function ReviewCodeView({
           onReplyToThread={replyToThread}
           onResolveThread={onResolveThread}
           onSaveCommentEdit={onSaveCommentEdit}
+          onSendComment={onSendComment}
           onSubmitComment={onSubmitComment}
           onUpdateComment={onUpdateComment}
           supportsReviewCommentActions={supportsReviewCommentActions}
+          supportsSendComment={supportsSendComment}
         />
       );
     },
@@ -4736,6 +4781,7 @@ export function ReviewCodeView({
       onLoadImageContent,
       onResolveThread,
       onSaveCommentEdit,
+      onSendComment,
       onSubmitComment,
       onUpdateComment,
       renderComments,
@@ -4744,6 +4790,7 @@ export function ReviewCodeView({
       source,
       sourceKey,
       supportsReviewCommentActions,
+      supportsSendComment,
     ],
   );
 

@@ -149,6 +149,7 @@ const codiff = {
   saveMarkdownDocument: (request) => ipcRenderer.invoke('codiff:saveMarkdownDocument', request),
   saveRepositoryFile: (request) => ipcRenderer.invoke('codiff:saveRepositoryFile', request),
   savePlanReview: (review) => ipcRenderer.invoke('codiff:savePlanReview', review),
+  sendComment: (request) => ipcRenderer.invoke('codiff:sendComment', request),
   showInFolder: (path) => ipcRenderer.invoke('codiff:showInFolder', path),
   submitPullRequestComment: (request) =>
     ipcRenderer.invoke('codiff:submitPullRequestComment', request),

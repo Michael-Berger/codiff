@@ -14,6 +14,12 @@ export const flagDefinitions = [
     type: 'string',
   },
   {
+    argument: '<string>',
+    hidden: true,
+    name: 'agent-target',
+    type: 'string',
+  },
+  {
     argument: '<ref>',
     // With the source given as a flag, the positional argument can only be the
     // repository path.
@@ -327,6 +333,7 @@ export const parseArguments = (args) => {
 
   let commitRef = typeof values.commit === 'string' ? values.commit : null;
   let branchRef = typeof values.branch === 'string' ? values.branch : null;
+  const agentTarget = typeof values['agent-target'] === 'string' ? values['agent-target'] : null;
   const codexSessionId =
     typeof values['codex-session'] === 'string' ? values['codex-session'] : null;
   const claudeSessionId =
@@ -449,6 +456,7 @@ export const parseArguments = (args) => {
 
   return {
     ...(agentBackend ? { agentBackend } : {}),
+    ...(agentTarget ? { agentTarget } : {}),
     ...(claudeSessionId ? { claudeSessionId } : {}),
     ...(codexSessionId ? { codexSessionId } : {}),
     ...(opencodeSessionId ? { opencodeSessionId } : {}),

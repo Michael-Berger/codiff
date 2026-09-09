@@ -85,6 +85,43 @@ export function RepositoryChangeBanner({
   );
 }
 
+const COMMENT_SEND_TOAST_TIMEOUT_MS = 5000;
+
+export function CommentSendToast({
+  error,
+  onDismiss,
+}: {
+  error: string | null;
+  onDismiss: () => void;
+}) {
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    const timer = window.setTimeout(onDismiss, COMMENT_SEND_TOAST_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [error, onDismiss]);
+
+  const isVisible = error != null;
+
+  return (
+    <div aria-live="polite" className={`comment-send-toast${isVisible ? ' visible' : ''}`}>
+      <WarningOctagon aria-hidden className="comment-send-toast-icon" size={15} weight="bold" />
+      <span className="comment-send-toast-content">{error}</span>
+      <button
+        aria-label="Dismiss comment send error"
+        className="repository-change-dismiss"
+        onClick={onDismiss}
+        title="Dismiss"
+        type="button"
+      >
+        <X aria-hidden className="diff-search-icon" size={15} weight="bold" />
+      </button>
+    </div>
+  );
+}
+
 export type { CodiffUpdateStatus as UpdateStatus } from '../../types.ts';
 
 export function UpdatePill({

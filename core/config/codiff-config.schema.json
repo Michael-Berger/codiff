@@ -42,6 +42,11 @@
           "default": 13,
           "description": "Font size in pixels used for diff and code rendering."
         },
+        "commentCommand": {
+          "type": "string",
+          "default": "",
+          "description": "Command run when a review comment is sent with Mod+Enter in local (non-PR) mode. Use {repo}, {file}, {path}, {line}, {endLine}, {side}, {snippet}, {body}, and {target} as placeholders; the comment body is also always written to the command's stdin. Leave empty to disable sending comments."
+        },
         "copyCommentsOnClose": {
           "type": "boolean",
           "default": false,

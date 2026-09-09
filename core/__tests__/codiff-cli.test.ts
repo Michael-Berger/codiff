@@ -1235,6 +1235,7 @@ test('Claude skill launcher uses the session cwd and forwards --agent claude', a
         CLAUDE_CONFIG_DIR: join(home, '.claude'),
         CLAUDE_SESSION_ID: sessionId,
         CODIFF_COMMAND: logger.commandPath,
+        HERDR_PANE_ID: '',
       },
     },
   );
@@ -1248,6 +1249,47 @@ test('Claude skill launcher uses the session cwd and forwards --agent claude', a
     '--claude-session',
     sessionId,
     'HEAD',
+    repositoryPath,
+  ]);
+});
+
+test('Claude skill launcher forwards --agent-target from HERDR_PANE_ID', async () => {
+  await using logger = await createFakeCommandLogger('codiff-claude-launcher-', 'codiff');
+  const home = join(logger.directory, 'home');
+  const repositoryPath = join(logger.directory, 'repo');
+  const walkthroughFile = join(logger.directory, 'walkthrough.json');
+
+  await mkdir(repositoryPath, { recursive: true });
+  await writeFile(walkthroughFile, '{}');
+
+  await execFileAsync(
+    process.execPath,
+    [
+      resolve('claude/skills/codiff/scripts/open-codiff.mjs'),
+      '--file',
+      walkthroughFile,
+      repositoryPath,
+    ],
+    {
+      cwd: resolve('claude/skills/codiff'),
+      env: {
+        ...logger.env,
+        CLAUDE_CONFIG_DIR: join(home, '.claude'),
+        CLAUDE_SESSION_ID: '',
+        CODIFF_COMMAND: logger.commandPath,
+        HERDR_PANE_ID: 'herdr-pane-7',
+      },
+    },
+  );
+
+  expect(await logger.readArgs()).toEqual([
+    '-w',
+    '--agent',
+    'claude',
+    '--walkthrough-file',
+    walkthroughFile,
+    '--agent-target',
+    'herdr-pane-7',
     repositoryPath,
   ]);
 });
@@ -1371,6 +1413,33 @@ test('packaged terminal helper forwards the agent and Claude session to Electron
     '--agent',
     'claude',
     '--walkthrough',
+    repositoryPath,
+  ]);
+});
+
+test('packaged terminal helper forwards the agent target to Electron', async () => {
+  await using logger = await createFakeOpenLogger();
+  const repositoryPath = join(logger.directory, 'repo');
+  const queuePath = join(logger.directory, 'comments.txt');
+
+  await mkdir(repositoryPath);
+
+  await execFileAsync(
+    resolve('bin/codiff-app'),
+    ['--agent', 'claude', '--agent-target', queuePath, '--commit', 'HEAD', repositoryPath],
+    { env: logger.env },
+  );
+
+  expect(await logger.readArgs()).toEqual([
+    '-n',
+    resolve('bin/../../../..'),
+    '--args',
+    '--agent-target',
+    queuePath,
+    '--agent',
+    'claude',
+    '--commit',
+    'HEAD',
     repositoryPath,
   ]);
 });
