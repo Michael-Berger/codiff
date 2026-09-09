@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+# Send a file/line-anchored review comment into a running Claude session's input box in Herdr.
+#
+# Designed to be called from Codiff (commentCommand) or an IDE (WebStorm External Tool,
+# LivePlugin action, or a real plugin). It resolves the target agent from the file's git
+# worktree, formats an anchored comment block, and writes it into the agent's input as a
+# bracketed paste without pressing Enter, so several comments can accumulate before you submit.
+#
+# Usage:
+#   herdr-comment --file <path> --line <n> [--end <n>] [--text <comment>]
+#                 [--snippet <code>] [--agent <name>] [--pane <w:p>]
+#                 [--send] [--focus] [--dry-run]
+#
+# By default the comment lands in the input unsent, so several can accumulate. --send submits
+# it immediately; --focus switches herdr to that agent.
+#
+# --text takes every remaining argument, so it must come last and needs no quoting.
+# --text omitted reads the comment from stdin.
+# --agent matches the herdr agent name (the pane's terminal title, e.g. "improvements").
+# --pane is used when that pane still hosts an agent in the file's worktree; a closed or reused
+# pane falls back to the normal resolution (worktree, then --agent, then focus).
+# Exit codes: 0 sent, 1 usage/resolution error, 2 herdr call failed.
+
+set -euo pipefail
+
+HERDR_BIN="${HERDR_BIN:-$(command -v herdr || echo /opt/homebrew/bin/herdr)}"
+JQ_BIN="${JQ_BIN:-$(command -v jq || echo /usr/bin/jq)}"
+GIT_BIN="${GIT_BIN:-$(command -v git || echo /usr/bin/git)}"
+
+die() { printf '%s\n' "$*" >&2; exit "${2:-1}"; }
+
+file=""; line=""; end=""; text=""; snippet=""; agent=""; pane=""; focus=0; dry=0; send=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --file)    file="$2"; shift 2 ;;
+    --line)    line="$2"; shift 2 ;;
+    --end)     end="$2"; shift 2 ;;
+    # An IDE macro expands unquoted, so the comment arrives as many arguments: take the rest.
+    --text)    shift; text="$*"; break ;;
+    --snippet) snippet="$2"; shift 2 ;;
+    --agent)   agent="$2"; shift 2 ;;
+    --pane)    pane="$2"; shift 2 ;;
+    --focus)   focus=1; shift ;;
+    --send)    send=1; shift ;;
+    --dry-run) dry=1; shift ;;
+    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+done
+
+[[ -n "$file" ]] || die "--file is required"
+[[ -x "$HERDR_BIN" ]] || die "herdr not found (set HERDR_BIN)"
+
+# An IDE may hand over a path that no longer exists (a diff's before-side); fall back to its
+# directory so the worktree still resolves.
+anchor_dir="$( [[ -d "$file" ]] && printf '%s' "$file" || dirname "$file" )"
+repo_root="$("$GIT_BIN" -C "$anchor_dir" rev-parse --show-toplevel 2>/dev/null)" \
+  || die "not inside a git worktree: $file"
+
+rel="${file#"$repo_root"/}"
+
+resolve_pane() {
+  local agents rows count
+  agents="$("$HERDR_BIN" agent list 2>/dev/null)" || die "herdr agent list failed" 2
+  # pane_id<TAB>name<TAB>cwd<TAB>focused, restricted to agents in this worktree.
+  rows="$(printf '%s' "$agents" | "$JQ_BIN" -r --arg root "$repo_root" '
+    .result.agents[]
+    | select((.cwd // "") == $root or ((.cwd // "") | startswith($root + "/")))
+    | [.pane_id, (.terminal_title_stripped // ""), (.cwd // ""), (.focused | tostring)]
+    | @tsv')"
+  [[ -n "$rows" ]] && rows="$(printf '%s\n' "$rows" | while IFS=$'\t' read -r p n c f; do
+      # cwd under the root is not enough: a nested checkout is a different worktree.
+      [[ "$("$GIT_BIN" -C "$c" rev-parse --show-toplevel 2>/dev/null)" == "$repo_root" ]] \
+        && printf '%s\t%s\t%s\t%s\n' "$p" "$n" "$c" "$f"
+    done)" || true
+  [[ -n "$rows" ]] || die "no Claude agent running in $repo_root"
+
+  if [[ -n "$agent" ]]; then
+    rows="$(printf '%s\n' "$rows" | awk -F'\t' -v n="$agent" '$2 == n')"
+    [[ -n "$rows" ]] || die "no agent named '$agent' in $repo_root"
+  fi
+
+  count="$(printf '%s\n' "$rows" | grep -c . || true)"
+  if [[ "$count" -gt 1 ]]; then
+    local focused
+    focused="$(printf '%s\n' "$rows" | awk -F'\t' '$4 == "true"')"
+    if [[ -n "$focused" && "$(printf '%s\n' "$focused" | grep -c .)" -eq 1 ]]; then
+      rows="$focused"
+    else
+      { echo "several agents in $repo_root; pass --agent <name>:"
+        printf '%s\n' "$rows" | awk -F'\t' '{print "  " $2 "  (" $1 ")"}'; } >&2
+      exit 1
+    fi
+  fi
+  printf '%s' "$(printf '%s\n' "$rows" | head -1 | cut -f1)"
+}
+
+pane_in_worktree() {
+  local agents cwd
+  agents="$("$HERDR_BIN" agent list 2>/dev/null)" || return 1
+  cwd="$(printf '%s' "$agents" | "$JQ_BIN" -r --arg p "$1" \
+    '.result.agents[] | select(.pane_id == $p) | .cwd // ""' | head -1)"
+  [[ -n "$cwd" ]] && [[ "$("$GIT_BIN" -C "$cwd" rev-parse --show-toplevel 2>/dev/null)" == "$repo_root" ]]
+}
+
+if [[ -n "$pane" ]] && ! pane_in_worktree "$pane"; then
+  pane=""
+fi
+[[ -n "$pane" ]] || pane="$(resolve_pane)"
+
+[[ -n "$text" ]] || { [[ -t 0 ]] && die "--text is required (or pipe it on stdin)"; text="$(cat)"; }
+
+location="$rel"
+if [[ -n "$line" ]]; then
+  location="$rel:$line"
+  [[ -n "$end" && "$end" != "$line" ]] && location="$rel:$line-$end"
+fi
+
+# Blank lines separate comment blocks, so a comment must not contain one.
+body="$(printf '%s\n' "$text" | tr -d '\r' | sed 's/[[:space:]]*$//' | grep -v '^$' || true)"
+[[ -n "$body" ]] || die "empty comment"
+
+# A leading blank line keeps consecutive comments apart in the input, the separator the
+# blank-line stripping above reserves.
+payload=$'\n'"$location"
+[[ -n "$snippet" ]] && payload="$payload"$'\n'"$snippet"
+payload="$payload"$'\n'"$body"$'\n'
+
+# A bracketed paste inserts verbatim in any input mode, where raw bytes can execute as
+# commands. An embedded terminator would end the frame early, so it is stripped first.
+esc=$'\033'
+payload="${payload//"$esc[201~"/}"
+wrapped="$esc[200~$payload$esc[201~"
+
+if [[ "$dry" -eq 1 ]]; then
+  printf 'pane: %s\nrepo: %s\n---\n%s\n' "$pane" "$repo_root" "$payload"
+  exit 0
+fi
+
+"$HERDR_BIN" pane send-text "$pane" "$wrapped" >/dev/null || die "send-text failed" 2
+if [[ "$send" -eq 1 ]]; then
+  # The paste and the Enter are two writes; the agent must finish inserting before it submits.
+  sleep 0.2
+  "$HERDR_BIN" pane send-keys "$pane" enter >/dev/null || die "send-keys enter failed" 2
+fi
+[[ "$focus" -eq 1 ]] && "$HERDR_BIN" agent focus "$pane" >/dev/null 2>&1 || true
+exit 0
