@@ -127,6 +127,9 @@ const parseCommandLineArguments = (commandLine = process.argv) => {
       agent: {
         type: 'string',
       },
+      'agent-target': {
+        type: 'string',
+      },
       'claude-session': {
         type: 'string',
       },
@@ -258,6 +261,7 @@ const parseCommandLineArguments = (commandLine = process.argv) => {
   const envPlanFilePath = useEnvironment ? process.env.CODIFF_PLAN_FILE || '' : '';
   const envPlanResultFilePath = useEnvironment ? process.env.CODIFF_PLAN_RESULT_FILE || '' : '';
   const envAgentBackend = useEnvironment ? process.env.CODIFF_AGENT_BACKEND || '' : '';
+  const envAgentTarget = useEnvironment ? process.env.CODIFF_AGENT_TARGET || '' : '';
   const envWalkthroughContextPath = useEnvironment
     ? process.env.CODIFF_WALKTHROUGH_CONTEXT || ''
     : '';
@@ -295,6 +299,10 @@ const parseCommandLineArguments = (commandLine = process.argv) => {
     rawAgentBackend === 'pi'
       ? rawAgentBackend
       : undefined;
+  const agentTarget =
+    (typeof values['agent-target'] === 'string' ? values['agent-target'] : '') ||
+    envAgentTarget ||
+    undefined;
   const walkthroughContextPath =
     (typeof values['walkthrough-context'] === 'string' ? values['walkthrough-context'] : '') ||
     envWalkthroughContextPath ||
@@ -330,6 +338,7 @@ const parseCommandLineArguments = (commandLine = process.argv) => {
     launchOptions: {
       ...(values['apply-update'] === true ? { applyUpdate: true } : {}),
       ...(agentBackend ? { agentBackend } : {}),
+      ...(agentTarget ? { agentTarget } : {}),
       ...(claudeSessionId ? { claudeSessionId } : {}),
       ...(codexSessionId ? { codexSessionId } : {}),
       ...(opencodeSessionId ? { opencodeSessionId } : {}),

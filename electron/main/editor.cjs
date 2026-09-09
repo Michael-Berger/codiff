@@ -2,6 +2,7 @@
 
 const { execFile } = require('node:child_process');
 const { dirname } = require('node:path');
+const { expandCommandPlaceholders, parseCommandTemplate } = require('./command-template.cjs');
 
 /**
  * @typedef {{args: Array<string>; command: string}} EditorCommand
@@ -14,11 +15,7 @@ const createEditorOpener = ({
   platform = process.platform,
   shell,
 }) => {
-  /** @param {string} command */
-  // Handles simple editor commands with quoted arguments. Keep this small unless
-  // we need full shell-style escaping semantics.
-  const parseEditorCommand = (command) =>
-    command.match(/"[^"]+"|'[^']+'|\S+/g)?.map((part) => part.replace(/^['"]|['"]$/g, '')) ?? [];
+  const parseEditorCommand = parseCommandTemplate;
 
   /** @param {string} command @param {ReadonlyArray<string>} args */
   const runEditorCommand = (command, args) =>
@@ -32,10 +29,11 @@ const createEditorOpener = ({
    * @param {EditorCommandContext} context
    */
   const replaceEditorPlaceholders = (arg, absolutePath, context) =>
-    arg
-      .replaceAll('{file}', absolutePath)
-      .replaceAll('{line}', context.lineNumber ? String(context.lineNumber) : '')
-      .replaceAll('{repo}', context.repoPath || dirname(absolutePath));
+    expandCommandPlaceholders(arg, {
+      file: absolutePath,
+      line: context.lineNumber ? String(context.lineNumber) : '',
+      repo: context.repoPath || dirname(absolutePath),
+    });
 
   /**
    * @param {ReadonlyArray<string>} args

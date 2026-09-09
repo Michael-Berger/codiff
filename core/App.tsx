@@ -10,6 +10,7 @@ import { OpenReviewSourceDialog } from './app/components/OpenReviewSourceDialog.
 import { OpenReviewSourceMenu } from './app/components/OpenReviewSourceMenu.tsx';
 import {
   AgentUnavailablePanel,
+  CommentSendToast,
   CopyCommentsButton,
   DiffSearchPanel,
   FirstRunPanel,
@@ -289,6 +290,8 @@ export default function App({
   );
   const {
     askCodex,
+    clearCommentSendError,
+    commentSendError,
     createComment,
     deleteComment,
     focusCommentId,
@@ -298,6 +301,7 @@ export default function App({
     resetCommentFocus,
     reviewComments,
     reviewCommentsRef,
+    sendComment,
     setReviewComments,
     submitPullRequestComment,
     submitPullRequestReview,
@@ -306,6 +310,7 @@ export default function App({
   } = useAppReviewComments({
     isReviewActionDisabled: isPullRequestReviewActionDisabled,
     onCommentFileChange: bumpItemVersion,
+    showWhitespace: preferences.showWhitespace,
     stateRef,
   });
   const collapseSidebar = useCallback(() => {
@@ -1832,6 +1837,7 @@ export default function App({
     onRefreshMarkdown: refreshMarkdownFile,
     onSaveCommentEdit: updateComment,
     onSelectPathFromScroll: updateSelectedPathFromScroll,
+    onSendComment: sendComment,
     onSubmitComment: submitPullRequestComment,
     onToggleCollapsed: toggleCollapsed,
     onToggleViewed: toggleViewed,
@@ -1853,6 +1859,7 @@ export default function App({
       />
     ) : undefined,
     supportsReviewCommentActions: isPullRequest,
+    supportsSendComment: !isPullRequest && Boolean(preferences.commentCommand),
     theme: preferences.theme,
     viewed,
     wordWrap,
@@ -1980,6 +1987,7 @@ export default function App({
         onDismiss={() => setWalkthroughFileError(null)}
         reason={walkthroughFileError?.reason ?? null}
       />
+      <CommentSendToast error={commentSendError} onDismiss={clearCommentSendError} />
       <DiffSearchPanel
         activeIndex={effectiveActiveDiffSearchMatchIndex}
         focusRequest={diffSearchFocusRequest}

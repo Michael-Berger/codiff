@@ -441,6 +441,8 @@ export type WalkthroughContext = {
 
 export type CodiffLaunchOptions = {
   agentBackend?: 'codex' | 'claude' | 'opencode' | 'pi';
+  /** Opaque value handed to `commentCommand` as `{target}`. */
+  agentTarget?: string;
   applyUpdate?: boolean;
   claudeSessionId?: string;
   codexSessionId?: string;
@@ -798,6 +800,7 @@ export type CodiffPreferences = {
   claudeModel: string;
   codeFontFamily: string;
   codeFontSize: number;
+  commentCommand: string;
   copyCommentsOnClose: boolean;
   diffStyle: CodiffDiffStyle;
   editorCommand: string;
@@ -888,3 +891,22 @@ export type SubmitPullRequestReviewRequest = {
   event: PullRequestReviewEvent;
   source: Extract<ReviewSource, { type: 'pull-request' }>;
 };
+
+export type SendCommentRequest = {
+  body: string;
+  endLine?: number;
+  line?: number;
+  /** Repo-relative. */
+  path: string;
+  side?: 'additions' | 'deletions';
+  snippet?: string;
+};
+
+export type SendCommentResult =
+  | {
+      ok: true;
+    }
+  | {
+      error: string;
+      ok: false;
+    };

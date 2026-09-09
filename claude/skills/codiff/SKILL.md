@@ -125,7 +125,9 @@ approval document.
    `--open`, which only controls whether the completed walkthrough is opened.
 
    **Agent integration:** The launcher passes `CLAUDE_SESSION_ID` to Codiff in desktop mode and
-   identifies shared walkthroughs as authored by Claude.
+   identifies shared walkthroughs as authored by Claude. When `HERDR_PANE_ID` is set, desktop mode
+   also forwards it as `--agent-target`, so a configured `commentCommand` can route review
+   comments sent from Codiff back to this pane.
 
    If a `hunkId` does not resolve, the command exits non-zero and prints the diff's real ids.
    Fix the document and rerun.

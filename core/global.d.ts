@@ -29,6 +29,8 @@ import type {
   SaveMarkdownDocumentResult,
   SaveRepositoryFileRequest,
   SaveRepositoryFileResult,
+  SendCommentRequest,
+  SendCommentResult,
   SharePlanResult,
   SharedWalkthroughSnapshot,
   ShareWalkthroughResult,
@@ -116,6 +118,7 @@ declare global {
       ) => Promise<SaveMarkdownDocumentResult>;
       savePlanReview: (review: PlanReview) => Promise<PlanReview>;
       saveRepositoryFile: (request: SaveRepositoryFileRequest) => Promise<SaveRepositoryFileResult>;
+      sendComment: (request: SendCommentRequest) => Promise<SendCommentResult>;
       setDiffStyle: (value: CodiffPreferences['diffStyle']) => Promise<void>;
       setShowOutdated: (value: boolean) => Promise<void>;
       setWordWrap: (value: boolean) => Promise<void>;
