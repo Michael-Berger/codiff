@@ -1295,6 +1295,45 @@ test('readRepositoryState reports commit body, trailers, refs, and rename stats'
   });
 });
 
+test('readRepositoryState diffs committed renames against their source path', async () => {
+  await withRepo(async (repo) => {
+    await writeRepoFile(repo, 'a-old.txt', 'alpha one\nalpha two\nalpha three\n');
+    await writeRepoFile(repo, 'm-old.txt', 'mid one\nmid two\nmid three\n');
+    await writeRepoFile(repo, 'same.txt', 'same one\n');
+    await commitAll(repo, 'initial commit');
+    await git(repo, ['mv', 'a-old.txt', 'z-new.txt']);
+    await git(repo, ['mv', 'm-old.txt', 'b-new.txt']);
+    await writeRepoFile(repo, 'z-new.txt', 'alpha one\nalpha changed\nalpha three\n');
+    await writeRepoFile(repo, 'b-new.txt', 'mid one\nmid changed\nmid three\n');
+    await writeRepoFile(repo, 'same.txt', 'same one\nsame two\n');
+    await commitAll(repo, 'rename files');
+    const commit = (await git(repo, ['rev-parse', 'HEAD'])).trim();
+
+    const state = await readRepositoryState(repo, { ref: commit, type: 'commit' });
+    const patchFor = (path: string) =>
+      state.files.find((file) => file.path === path)?.sections[0].patch;
+
+    expect(state.files.map((file) => file.path)).toEqual(['b-new.txt', 'same.txt', 'z-new.txt']);
+    expect(patchFor('z-new.txt')).toContain('rename from a-old.txt');
+    expect(patchFor('z-new.txt')).toContain('-alpha two\n+alpha changed');
+    expect(patchFor('z-new.txt')).not.toContain('new file mode');
+    expect(patchFor('b-new.txt')).toContain('rename from m-old.txt');
+    expect(patchFor('b-new.txt')).toContain('-mid two\n+mid changed');
+    expect(patchFor('b-new.txt')).not.toContain('new file mode');
+    expect(patchFor('same.txt')).toContain('+same two');
+
+    const section = await readDiffSectionContent(repo, {
+      force: true,
+      kind: 'commit',
+      path: 'z-new.txt',
+      source: { ref: commit, type: 'commit' },
+    });
+
+    expect(section.patch).toContain('rename from a-old.txt');
+    expect(section.patch).toContain('-alpha two\n+alpha changed');
+  });
+});
+
 test('readRepositoryState preserves numstat for committed paths with tabs', async () => {
   await withRepo(async (repo) => {
     const path = 'notes/with\ttab.txt';
