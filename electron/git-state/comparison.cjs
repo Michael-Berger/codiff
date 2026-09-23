@@ -5,6 +5,7 @@ const {
   getFingerprint,
   git,
   readGitImageFile,
+  splitPatchByPath,
   summarizeContent,
   validateRepositoryPath,
 } = require('./common.cjs');
@@ -24,13 +25,34 @@ const createComparisonPatchArgs = (newRef, oldRef, paths) =>
     ? ['diff', '--patch', '--no-ext-diff', '--find-renames', oldRef, newRef, '--', ...paths]
     : ['show', '--format=', '--patch', '--no-ext-diff', '--find-renames', newRef, '--', ...paths];
 
-/** @param {string} repoRoot @param {string} newRef @param {string | undefined} oldRef @param {string} path */
-const readComparisonPatch = (repoRoot, newRef, oldRef, path) =>
-  git(repoRoot, createComparisonPatchArgs(newRef, oldRef, [path]));
+/** @param {ReadonlyArray<Pick<StatusItem, 'oldPath' | 'path'>>} items */
+const createComparisonPathspec = (items) => [
+  ...new Set(items.flatMap((item) => (item.oldPath ? [item.oldPath, item.path] : [item.path]))),
+];
 
-/** @param {ReadonlyArray<string>} values @param {number} size */
+/**
+ * @param {string} repoRoot
+ * @param {string} newRef
+ * @param {string | undefined} oldRef
+ * @param {ReadonlyArray<Pick<StatusItem, 'oldPath' | 'path'>>} items
+ */
+const readComparisonPatchesByPath = async (repoRoot, newRef, oldRef, items) =>
+  splitPatchByPath(
+    await git(repoRoot, createComparisonPatchArgs(newRef, oldRef, createComparisonPathspec(items))),
+  );
+
+/**
+ * @param {string} repoRoot
+ * @param {string} newRef
+ * @param {string | undefined} oldRef
+ * @param {Pick<StatusItem, 'oldPath' | 'path'>} item
+ */
+const readComparisonPatch = async (repoRoot, newRef, oldRef, item) =>
+  (await readComparisonPatchesByPath(repoRoot, newRef, oldRef, [item])).get(item.path)?.patch || '';
+
+/** @template T @param {ReadonlyArray<T>} values @param {number} size */
 const chunk = (values, size) => {
-  /** @type {Array<Array<string>>} */
+  /** @type {Array<Array<T>>} */
   const chunks = [];
   for (let index = 0; index < values.length; index += size) {
     chunks.push(values.slice(index, index + size));
@@ -38,45 +60,20 @@ const chunk = (values, size) => {
   return chunks;
 };
 
-/** @param {string} patch */
-const splitCommitPatch = (patch) =>
-  patch
-    .split(/(?=^diff --git )/m)
-    .map((part) => part.trimEnd())
-    .filter((part) => part.startsWith('diff --git '))
-    .map((part) => `${part}\n`);
-
 /**
  * @param {string} repoRoot
  * @param {string} newRef
  * @param {string | undefined} oldRef
- * @param {ReadonlyArray<Pick<StatusItem, 'path'>>} items
+ * @param {ReadonlyArray<Pick<StatusItem, 'oldPath' | 'path'>>} items
  */
 const readComparisonPatches = async (repoRoot, newRef, oldRef, items) => {
   /** @type {Map<string, string>} */
   const patches = new Map();
 
-  for (const itemChunk of chunk(
-    items.map((item) => item.path),
-    200,
-  )) {
-    if (itemChunk.length === 0) {
-      continue;
-    }
-
-    const patch = await git(repoRoot, createComparisonPatchArgs(newRef, oldRef, itemChunk));
-    const patchChunks = splitCommitPatch(patch);
-
-    if (patchChunks.length === itemChunk.length) {
-      for (let index = 0; index < itemChunk.length; index += 1) {
-        patches.set(itemChunk[index], patchChunks[index]);
-      }
-    } else {
-      await Promise.all(
-        itemChunk.map(async (path) => {
-          patches.set(path, await readComparisonPatch(repoRoot, newRef, oldRef, path));
-        }),
-      );
+  for (const itemChunk of chunk(items, 200)) {
+    const chunkPatches = await readComparisonPatchesByPath(repoRoot, newRef, oldRef, itemChunk);
+    for (const item of itemChunk) {
+      patches.set(item.path, chunkPatches.get(item.path)?.patch || '');
     }
   }
 
@@ -243,9 +240,7 @@ const readComparisonSectionContent = async (
   const newFile = newFiles.get(item.path) || createEmptyFileContent(item.path);
   const summary = summarizeContent(oldFile, newFile);
   const patch =
-    summary.loadState === 'ready'
-      ? await readComparisonPatch(repoRoot, newRef, oldRef, item.path)
-      : '';
+    summary.loadState === 'ready' ? await readComparisonPatch(repoRoot, newRef, oldRef, item) : '';
 
   return createComparisonSection(newRef, item, oldFile, newFile, patch);
 };

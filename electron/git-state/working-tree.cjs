@@ -17,6 +17,7 @@ const {
   readGitImageFile,
   readIndexImageFile,
   readWorkingTreeImageFile,
+  splitPatchByPath,
   validateRepositoryPath,
 } = require('./common.cjs');
 
@@ -31,104 +32,8 @@ const {
  * @typedef {'staged' | 'unstaged'} WorkingTreeSectionKind
  */
 
-const diffGitHeaderPattern = /^diff --git (.+)$/;
-
-/** @param {string} value */
-const unquoteGitPath = (value) => {
-  if (!value.startsWith('"')) {
-    return value;
-  }
-
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value.slice(1, value.endsWith('"') ? -1 : undefined);
-  }
-};
-
-/** @param {string} line */
-const splitDiffGitHeader = (line) => {
-  const match = line.match(diffGitHeaderPattern);
-  if (!match) {
-    return null;
-  }
-
-  const paths = [];
-  let index = 0;
-  const value = match[1];
-  while (index < value.length && paths.length < 2) {
-    while (value[index] === ' ') {
-      index += 1;
-    }
-
-    if (value[index] === '"') {
-      let end = index + 1;
-      let escaped = false;
-      while (end < value.length) {
-        const char = value[end];
-        if (char === '"' && !escaped) {
-          end += 1;
-          break;
-        }
-        escaped = char === '\\' && !escaped;
-        if (char !== '\\') {
-          escaped = false;
-        }
-        end += 1;
-      }
-      paths.push(unquoteGitPath(value.slice(index, end)));
-      index = end;
-      continue;
-    }
-
-    const end = value.indexOf(' ', index);
-    if (end === -1) {
-      paths.push(value.slice(index));
-      break;
-    }
-
-    paths.push(value.slice(index, end));
-    index = end + 1;
-  }
-
-  return paths.length === 2 ? paths : null;
-};
-
-/** @param {string} path */
-const stripGitDiffPrefix = (path) =>
-  path.startsWith('a/') || path.startsWith('b/') ? path.slice(2) : path;
-
 /** @param {string} path */
 const shouldEagerlyReadWorkingTreeContents = (path) => /\.md$/i.test(path);
-
-/** @param {string} rawPatch @returns {Map<string, {binary: boolean; patch: string}>} */
-const splitPatchByPath = (rawPatch) => {
-  const patches = new Map();
-  const starts = [];
-  const pattern = /^diff --git .+$/gm;
-  let match;
-
-  while ((match = pattern.exec(rawPatch))) {
-    starts.push(match.index);
-  }
-
-  for (let index = 0; index < starts.length; index += 1) {
-    const start = starts[index];
-    const end = starts[index + 1] ?? rawPatch.length;
-    const patch = rawPatch.slice(start, end);
-    const header = patch.slice(0, patch.indexOf('\n') === -1 ? patch.length : patch.indexOf('\n'));
-    const paths = splitDiffGitHeader(header);
-    const path = paths ? stripGitDiffPrefix(paths[1]) : null;
-    if (path) {
-      patches.set(path, {
-        binary: /Binary files .* differ/.test(patch),
-        patch,
-      });
-    }
-  }
-
-  return patches;
-};
 
 /**
  * @param {string} repoRoot
