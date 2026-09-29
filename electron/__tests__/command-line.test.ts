@@ -10,16 +10,37 @@ import {
   createTemporaryEnvironment,
   createTemporaryWorkingDirectory,
 } from '../../core/__tests__/helpers/resources.ts';
+import type { CodiffLaunchOptions } from '../../core/types.ts';
 
 const require = createRequire(import.meta.url);
-const { getCommandLineLaunchOptions, getCommandLineRepositoryPath, getInitialRepositoryPath } =
-  require('../main/command-line.cjs') as {
-    getCommandLineLaunchOptions: (
-      commandLine: ReadonlyArray<string>,
-      fallbackPath?: string,
-    ) => {
-      agentTarget?: string;
-      applyUpdate?: boolean;
+const {
+  getCommandLineLaunchOptions,
+  getCommandLineRepositoryPath,
+  getInitialRepositoryPath,
+  withRelaunchAgentOptions,
+} = require('../main/command-line.cjs') as {
+  getCommandLineLaunchOptions: (
+    commandLine: ReadonlyArray<string>,
+    fallbackPath?: string,
+  ) => {
+    agentTarget?: string;
+    applyUpdate?: boolean;
+    codexSessionId?: string;
+    planFile?: string;
+    planResultFile?: string;
+    repositoryPathProvided: boolean;
+    source?:
+      | { ref: string; type: 'branch-working-tree' }
+      | { ref: string; type: 'commit' }
+      | { base: string; head: string; symmetric: boolean; type: 'range' }
+      | { type: 'pull-request'; url: string };
+    walkthrough: boolean;
+    walkthroughContext?: unknown;
+  };
+  getCommandLineRepositoryPath: (commandLine: ReadonlyArray<string>) => string | null;
+  getInitialRepositoryPath: (
+    launchPath: string,
+    launchOptions: {
       codexSessionId?: string;
       planFile?: string;
       planResultFile?: string;
@@ -31,27 +52,15 @@ const { getCommandLineLaunchOptions, getCommandLineRepositoryPath, getInitialRep
         | { type: 'pull-request'; url: string };
       walkthrough: boolean;
       walkthroughContext?: unknown;
-    };
-    getCommandLineRepositoryPath: (commandLine: ReadonlyArray<string>) => string | null;
-    getInitialRepositoryPath: (
-      launchPath: string,
-      launchOptions: {
-        codexSessionId?: string;
-        planFile?: string;
-        planResultFile?: string;
-        repositoryPathProvided: boolean;
-        source?:
-          | { ref: string; type: 'branch-working-tree' }
-          | { ref: string; type: 'commit' }
-          | { base: string; head: string; symmetric: boolean; type: 'range' }
-          | { type: 'pull-request'; url: string };
-        walkthrough: boolean;
-        walkthroughContext?: unknown;
-      },
-      lastRepositoryPath: string,
-      environment?: NodeJS.ProcessEnv,
-    ) => string;
-  };
+    },
+    lastRepositoryPath: string,
+    environment?: NodeJS.ProcessEnv,
+  ) => string;
+  withRelaunchAgentOptions: (
+    current: CodiffLaunchOptions | undefined,
+    next: CodiffLaunchOptions,
+  ) => CodiffLaunchOptions;
+};
 
 const readCommandLine = (commandLine: ReadonlyArray<string>) => ({
   launchOptions: getCommandLineLaunchOptions(commandLine),
@@ -108,6 +117,43 @@ test('parses --agent-target as a CLI flag', () => {
 
 test('leaves agentTarget unset when no --agent-target flag is given', () => {
   expect(getCommandLineLaunchOptions(['codiff', '/repo']).agentTarget).toBeUndefined();
+});
+
+test('a relaunch hands its agent routing to the window it reuses', () => {
+  const current = {
+    agentBackend: 'codex' as const,
+    repositoryPathProvided: true,
+    source: { ref: 'abc1234', type: 'commit' as const },
+    walkthrough: false,
+  };
+
+  expect(
+    withRelaunchAgentOptions(current, {
+      agentBackend: 'claude',
+      agentTarget: 'herdr-pane-7',
+      claudeSessionId: 'session-1',
+      repositoryPathProvided: true,
+      source: { ref: 'abc1234', type: 'commit' },
+      walkthrough: false,
+    }),
+  ).toEqual({
+    ...current,
+    agentBackend: 'claude',
+    agentTarget: 'herdr-pane-7',
+    claudeSessionId: 'session-1',
+  });
+});
+
+test('a relaunch without agent options leaves the reused window unchanged', () => {
+  const current = {
+    agentTarget: 'herdr-pane-7',
+    repositoryPathProvided: true,
+    walkthrough: false,
+  };
+
+  expect(
+    withRelaunchAgentOptions(current, { repositoryPathProvided: true, walkthrough: false }),
+  ).toBe(current);
 });
 
 test('plan command lines do not inspect Git refs', { concurrent: false }, async () => {
