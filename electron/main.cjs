@@ -78,6 +78,7 @@ const {
   getInitialRepositoryPath,
   getLaunchOptions,
   getLaunchPath,
+  withRelaunchAgentOptions,
 } = require('./main/command-line.cjs');
 const { createSkillInstaller } = require('./main/agent-skill.cjs');
 const { sendComment } = require('./main/comment-command.cjs');
@@ -1310,6 +1311,11 @@ const focusOrCreateWindow = (
         windowIdentities.set(matchingWebContentsId, identity);
       }
       matchingWindow.reload();
+    } else {
+      windowLaunchOptions.set(
+        matchingWebContentsId,
+        withRelaunchAgentOptions(windowLaunchOptions.get(matchingWebContentsId), launchOptions),
+      );
     }
     focusWindow(matchingWindow);
     return matchingWindow;
