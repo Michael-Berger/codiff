@@ -127,7 +127,12 @@ approval document.
    **Agent integration:** The launcher passes `CLAUDE_SESSION_ID` to Codiff in desktop mode and
    identifies shared walkthroughs as authored by Claude. When `HERDR_PANE_ID` is set, desktop mode
    also forwards it as `--agent-target`, so a configured `commentCommand` can route review
-   comments sent from Codiff back to this pane.
+   comments sent from Codiff back to this pane. To open a plain diff for review comments without
+   authoring a walkthrough, omit `--file`, for example
+   `node scripts/open-codiff.mjs --commit <sha> /path/to/repository` (or `--branch <ref>`, or only
+   the repository for the working tree). The other arguments are forwarded to Codiff verbatim,
+   and comments reach this pane the same way, except in a pull request review, where they go to
+   the pull request. Do not summarize the diff back to the user.
 
    Codiff validates and repairs the document against the live diff, so anchors that drift
    are pinned to a real section rather than dropped.

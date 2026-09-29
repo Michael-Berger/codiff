@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 
-// Launcher for the Codiff `codiff` skill. The agent has already authored a
-// narrative walkthrough JSON file; this just opens Codiff pointed at it, passing the
-// Claude session id so follow-up questions reuse the conversation.
+// Launcher for the Codiff `codiff` skill. Opens Codiff on an agent-authored walkthrough JSON
+// file or a plain diff, passing the Claude session id so follow-up questions reuse the
+// conversation.
 //
 // Usage:
 //   node scripts/open-codiff.mjs --file <path> [target]
+//   node scripts/open-codiff.mjs [target]
 //   node scripts/open-codiff.mjs --plan <path> [repository]
 //
-// `--file <path>` is forwarded to Codiff as `--walkthrough-file`. Any non-flag target
-// (commit, HEAD, PR number, or repository path) is forwarded verbatim; when no repository
-// path is given the session's working directory is used.
+// `--file <path>` is forwarded to Codiff as `--walkthrough-file`. Without it, Codiff opens the
+// plain diff for the target. Any other arguments (a commit, `--commit <sha>`, `--branch <ref>`,
+// HEAD, a PR number, or a repository path) are forwarded verbatim; when no repository path is
+// given the session's working directory is used.
 
 import { Buffer } from 'node:buffer';
 import { spawnSync } from 'node:child_process';
@@ -327,13 +329,13 @@ if (planFile) {
   process.exit(result.status ?? 0);
 }
 
-if (!walkthroughFile) {
+if (!walkthroughFile && shareWalkthrough) {
   process.stderr.write('open-codiff: missing --file <path> to the walkthrough JSON.\n');
   process.exit(1);
 }
 
-const walkthroughFilePath = resolve(sessionCwd, walkthroughFile);
-if (!existsSync(walkthroughFilePath)) {
+const walkthroughFilePath = walkthroughFile ? resolve(sessionCwd, walkthroughFile) : '';
+if (walkthroughFilePath && !existsSync(walkthroughFilePath)) {
   process.stderr.write(`open-codiff: walkthrough file not found at ${walkthroughFilePath}.\n`);
   process.exit(1);
 }
@@ -376,11 +378,10 @@ const hasRepositoryTarget = forwardedArgs.some(
 const codiffCommand = getCodiffCommand();
 const args = [
   ...codiffCommand.args,
-  '-w',
+  ...(walkthroughFilePath ? ['-w'] : []),
   '--agent',
   'claude',
-  '--walkthrough-file',
-  walkthroughFilePath,
+  ...(walkthroughFilePath ? ['--walkthrough-file', walkthroughFilePath] : []),
   ...(threadId ? ['--claude-session', threadId] : []),
   ...(process.env.HERDR_PANE_ID ? ['--agent-target', process.env.HERDR_PANE_ID] : []),
   ...forwardedArgs,
