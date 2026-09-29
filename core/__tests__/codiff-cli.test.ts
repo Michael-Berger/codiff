@@ -1294,6 +1294,60 @@ test('Claude skill launcher forwards --agent-target from HERDR_PANE_ID', async (
   ]);
 });
 
+test('Claude skill launcher opens a plain diff without a walkthrough file', async () => {
+  await using logger = await createFakeCommandLogger('codiff-claude-launcher-', 'codiff');
+  const home = join(logger.directory, 'home');
+  const repositoryPath = join(logger.directory, 'repo');
+  const sessionId = '019e5e57-e7d6-7392-9ad1-ad959319d2fb';
+
+  await mkdir(repositoryPath, { recursive: true });
+
+  await execFileAsync(
+    process.execPath,
+    [
+      resolve('claude/skills/codiff/scripts/open-codiff.mjs'),
+      '--commit',
+      'abc1234',
+      repositoryPath,
+    ],
+    {
+      cwd: resolve('claude/skills/codiff'),
+      env: {
+        ...logger.env,
+        CLAUDE_CONFIG_DIR: join(home, '.claude'),
+        CLAUDE_SESSION_ID: sessionId,
+        CODIFF_COMMAND: logger.commandPath,
+        HERDR_PANE_ID: 'herdr-pane-7',
+      },
+    },
+  );
+
+  expect(await logger.readArgs()).toEqual([
+    '--agent',
+    'claude',
+    '--claude-session',
+    sessionId,
+    '--agent-target',
+    'herdr-pane-7',
+    '--commit',
+    'abc1234',
+    repositoryPath,
+  ]);
+});
+
+test('Claude skill launcher requires a walkthrough file to share', async () => {
+  await expect(
+    execFileAsync(
+      process.execPath,
+      [resolve('claude/skills/codiff/scripts/open-codiff.mjs'), '--share', 'HEAD'],
+      {
+        cwd: resolve('claude/skills/codiff'),
+        env: { ...process.env, CLAUDE_SESSION_ID: '' },
+      },
+    ),
+  ).rejects.toMatchObject({ stderr: expect.stringContaining('missing --file') });
+});
+
 test('Pi skill launcher resolves the current session and forwards --agent pi', async () => {
   await using logger = await createFakeCommandLogger('codiff-pi-launcher-', 'codiff');
   const home = join(logger.directory, 'home');

@@ -434,10 +434,38 @@ const getInitialRepositoryPath = (
 
 const getLaunchOptions = () => getCommandLineLaunchOptions();
 
+const agentLaunchOptionKeys = /** @type {const} */ ([
+  'agentBackend',
+  'agentTarget',
+  'claudeSessionId',
+  'codexSessionId',
+  'opencodeSessionId',
+  'piSessionId',
+]);
+
+/**
+ * A relaunch that reuses an open window keeps its review but takes over its agent routing.
+ *
+ * @param {CodiffLaunchOptions | undefined} current
+ * @param {CodiffLaunchOptions} next
+ * @returns {CodiffLaunchOptions}
+ */
+const withRelaunchAgentOptions = (current, next) => {
+  if (!current) {
+    return next;
+  }
+
+  const agentOptions = Object.fromEntries(
+    agentLaunchOptionKeys.flatMap((key) => (next[key] ? [[key, next[key]]] : [])),
+  );
+  return Object.keys(agentOptions).length > 0 ? { ...current, ...agentOptions } : current;
+};
+
 module.exports = {
   getInitialRepositoryPath,
   getCommandLineLaunchOptions,
   getCommandLineRepositoryPath,
   getLaunchOptions,
   getLaunchPath,
+  withRelaunchAgentOptions,
 };
