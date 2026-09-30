@@ -1,0 +1,61 @@
+diff --git a/dist/deploy-Bsymb0_c.mjs b/dist/deploy-Bsymb0_c.mjs
+index b14ba5aea8565b7e6c7d414de431bb74b5102593..48689eba83ba7aa7089574fb4b2c46b3a3920605 100644
+--- a/dist/deploy-Bsymb0_c.mjs
++++ b/dist/deploy-Bsymb0_c.mjs
+@@ -44,7 +44,7 @@ import { r as resolveProjectBySlug, t as getRequestedProjectSlug } from "./resol
+ import { t as collectGitDeployMetadata } from "./git-metadata-D-gurjzG.mjs";
+ import { t as promptForLoginToken } from "./login-BgQJzxAl.mjs";
+ import { createRequire } from "node:module";
+-import { copyFileSync, cpSync, createWriteStream, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
++import { copyFileSync, cpSync, createWriteStream, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+ import { fileURLToPath } from "node:url";
+ import { createDeployArtifact, createDeployUploadPayload } from "@void/deploy-core";
+ import { createHash, randomBytes } from "node:crypto";
+@@ -4941,17 +4941,38 @@ function hashCfUploader() {
+ function hashDirectoryContents(dir) {
+ 	try {
+ 		const hash = createHash("sha256");
++		const visiting = /* @__PURE__ */ new Set();
+ 		const walk = (rel) => {
+-			const entries = readdirSync(join(dir, rel), { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+-			for (const entry of entries) {
+-				const childRel = rel ? `${rel}/${entry.name}` : entry.name;
+-				if (entry.isDirectory()) walk(childRel);
+-				else {
+-					hash.update(childRel);
+-					hash.update("\0");
+-					hash.update(readFileSync(join(dir, childRel)));
+-					hash.update("\0");
++			const real = realpathSync(join(dir, rel));
++			if (visiting.has(real)) throw new Error(`Cyclic symlink in uploader: ${rel}`);
++			visiting.add(real);
++			try {
++				const entries = readdirSync(join(dir, rel), { withFileTypes: true }).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
++				for (const entry of entries) {
++					const childRel = rel ? `${rel}/${entry.name}` : entry.name;
++					const childPath = join(dir, childRel);
++					if (entry.isDirectory()) walk(childRel);
++					else {
++						hash.update(childRel);
++						hash.update("\0");
++						if (entry.isSymbolicLink()) {
++							hash.update(readlinkSync(childPath));
++							hash.update("\0");
++							try {
++								const target = statSync(childPath);
++								if (target.isDirectory()) walk(childRel);
++								else if (target.isFile()) hash.update(readFileSync(childPath));
++								else throw new Error(`Unsupported uploader symlink target: ${childRel}`);
++							} catch (error) {
++								if (error?.code !== "ENOENT") throw error;
++								hash.update("missing");
++							}
++						} else hash.update(readFileSync(childPath));
++						hash.update("\0");
++					}
+ 				}
++			} finally {
++				visiting.delete(real);
+ 			}
+ 		};
+ 		walk("");

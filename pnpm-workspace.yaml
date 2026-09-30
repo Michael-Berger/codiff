@@ -45,6 +45,7 @@ overrides:
   vite@*: 'catalog:'
 patchedDependencies:
   native-keymap@3.3.9: patches/native-keymap@3.3.9.patch
+  void@0.21.2: patches/void@0.21.2.patch
 peerDependencyRules:
   allowAny:
     - vite
