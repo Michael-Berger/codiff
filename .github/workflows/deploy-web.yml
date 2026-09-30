@@ -92,3 +92,18 @@ jobs:
             console.log(events.split('\n').filter((line) => line.startsWith('oom')).join('\n'));
           } catch {}
           JS
+          status=$(curl --silent --show-error --output "$RUNNER_TEMP/cloudflare-write-probe.json" --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data '{}' \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/codiff/versions")
+          echo "Worker version permission probe HTTP $status"
+          python3 - <<'PY'
+          import json
+          import os
+
+          with open(os.path.join(os.environ['RUNNER_TEMP'], 'cloudflare-write-probe.json')) as response:
+              result = json.load(response)
+          print('Cloudflare codes:', [error.get('code') for error in result.get('errors', [])])
+          PY
