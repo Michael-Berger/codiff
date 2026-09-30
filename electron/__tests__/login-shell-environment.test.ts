@@ -20,6 +20,7 @@ const { getCommandEnvironment, getLoginShellEnvironment, resolveLoginShellEnviro
 const { findExecutableOnPath } = require('../agent-shared.cjs') as {
   findExecutableOnPath: (command: string) => string | null;
 };
+const { spawnPty } = require('../pty.cjs') as { spawnPty: typeof import('node-pty').spawn };
 
 const fishPath = findExecutableOnPath('fish');
 const zshPath = findExecutableOnPath('zsh');
@@ -67,8 +68,7 @@ fi
 exec /bin/sh -c "$4"
 `,
     );
-    const { spawn } = await import('node-pty');
-    const terminal = spawn(
+    const terminal = spawnPty(
       process.execPath,
       [
         '-e',

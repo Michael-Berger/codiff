@@ -5,16 +5,12 @@
 // reviewer chose to include. Only those paths are committed — any other staged
 // changes are left untouched — so a reviewer can land part of a working tree.
 
-const { accessSync, chmodSync, constants, mkdtempSync, rmSync, writeFileSync } = require('node:fs');
+const { mkdtempSync, rmSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
-const { dirname, join } = require('node:path');
+const { join } = require('node:path');
 
 const { git, validateRepositoryPath } = require('./git-state/common.cjs');
-
-// `node-pty` is a native addon and only a walkthrough commit needs it, so it is
-// loaded on first use rather than at startup.
-/** @returns {typeof import('node-pty')} */
-const loadPty = () => require('node-pty');
+const { spawnPty } = require('./pty.cjs');
 
 /**
  * @typedef {import('../core/types.ts').WalkthroughCommitRequest} WalkthroughCommitRequest
@@ -26,29 +22,6 @@ const loadPty = () => require('node-pty');
 // renderer's terminal does.
 const TERMINAL_COLS = 80;
 const TERMINAL_ROWS = 24;
-
-// pnpm drops the executable bit on node-pty's prebuilt macOS spawn-helper,
-// which makes every pty.spawn fail with `posix_spawnp failed`.
-const ensureSpawnHelperIsExecutable = () => {
-  if (process.platform !== 'darwin') {
-    return;
-  }
-  const helper = join(
-    dirname(require.resolve('node-pty/package.json')),
-    'prebuilds',
-    `darwin-${process.arch}`,
-    'spawn-helper',
-  );
-  try {
-    accessSync(helper, constants.X_OK);
-  } catch {
-    try {
-      chmodSync(helper, 0o755);
-    } catch {
-      // Fall through to pty.spawn, which reports the real failure.
-    }
-  }
-};
 
 /** Remove ANSI escape sequences (colors, cursor movement, OSC) from text. */
 /** @param {string} text */
@@ -76,12 +49,10 @@ const normalizeTerminalOutput = (text) =>
  */
 const gitStreaming = (repoPath, args, onOutput) =>
   new Promise((resolve, reject) => {
-    const pty = loadPty();
-    ensureSpawnHelperIsExecutable();
     /** @type {import('node-pty').IPty} */
     let child;
     try {
-      child = pty.spawn('git', ['-C', repoPath, ...args], {
+      child = spawnPty('git', ['-C', repoPath, ...args], {
         cols: TERMINAL_COLS,
         cwd: repoPath,
         env: process.env,
