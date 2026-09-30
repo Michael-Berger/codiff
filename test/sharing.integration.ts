@@ -1,37 +1,21 @@
-import { fileURLToPath } from 'node:url';
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
-import { createTestHarness } from 'wrangler';
+/// <reference types="@cloudflare/vitest-plugin/types" />
+import { applyD1Migrations } from 'cloudflare:test';
+import { env as workerEnv, exports } from 'cloudflare:workers';
+import { afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { handleSharingApiRequest, type SharingBucket, type SharingEnv } from '../service/api.ts';
 import { hashUploadIntentSecret } from '../service/upload-intent.ts';
 
 const origin = 'https://test.codiff.local';
 
-const server = createTestHarness({
-  root: fileURLToPath(new URL('..', import.meta.url)),
-  workers: [
-    {
-      configPath: 'web/dist/ssr/wrangler.json',
-      secrets: {
-        AUTH_GITHUB_CLIENT_ID: 'test-github-client-id',
-        AUTH_GITHUB_CLIENT_SECRET: 'test-github-client-secret',
-        BETTER_AUTH_SECRET: 'test-better-auth-secret-at-least-32-characters',
-      },
-      vars: { PUBLIC_ORIGIN: origin },
-    },
-  ],
-});
-const worker = server.getWorker<{ DB: D1Database; WALKTHROUGH_BUCKET: R2Bucket }>();
-let env: Awaited<ReturnType<typeof worker.getEnv>>;
-const SELF = worker;
+const env = workerEnv as unknown as {
+  DB: D1Database;
+  TEST_MIGRATIONS: Parameters<typeof applyD1Migrations>[1];
+  WALKTHROUGH_BUCKET: R2Bucket;
+};
+const SELF = (exports as unknown as { default: Fetcher }).default;
 
 beforeAll(async () => {
-  await server.listen();
-  await worker.applyD1Migrations('DB');
-  env = await worker.getEnv();
-});
-
-afterAll(async () => {
-  await server.close();
+  await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
 });
 
 const planSnapshot = {
