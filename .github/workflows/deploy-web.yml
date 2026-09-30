@@ -38,7 +38,7 @@ jobs:
       - name: Install native-keymap dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libx11-dev libxkbfile-dev
+          sudo apt-get install --yes libx11-dev libxkbfile-dev strace
 
       - uses: voidzero-dev/setup-vp@v1.21.1
         with:
@@ -61,7 +61,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
         run: |
-          vp exec void deploy --platform cloudflare --atomic
+          strace -f -e trace=wait4,waitid,exit_group -o "$RUNNER_TEMP/deploy-processes.log" \
+            vp exec void deploy --platform cloudflare --atomic
 
       - name: Diagnose failed Cloudflare deploy
         if: failure()
@@ -90,6 +91,10 @@ jobs:
           try {
             const events = readFileSync('/sys/fs/cgroup/memory.events', 'utf8');
             console.log(events.split('\n').filter((line) => line.startsWith('oom')).join('\n'));
+          } catch {}
+          try {
+            const processes = readFileSync(`${process.env.RUNNER_TEMP}/deploy-processes.log`, 'utf8');
+            console.log(processes.split('\n').filter((line) => /SIGKILL|SIGSEGV|WIFSIGNALED|exit_group\(1\)/.test(line)).slice(-20).join('\n'));
           } catch {}
           JS
           status=$(curl --silent --show-error --output "$RUNNER_TEMP/cloudflare-write-probe.json" --write-out '%{http_code}' \
