@@ -16,6 +16,7 @@ const trace = (line) => {
 
 if (/\/cf\/bin\/cf$/.test(process.argv[1] ?? '') && process.argv.includes('deploy')) {
   trace('cf HTTP trace active');
+  delete process.env.CF_QUIET;
   let fetchCount = 0;
   let requestCount = 0;
   subscribe('undici:request:headers', ({ request, response }) => {
