@@ -7,6 +7,7 @@ export default defineConfig({
     d1_databases: [
       {
         binding: 'DB',
+        database_id: '14903089-ad88-4cce-808a-415dea31d4ac',
         database_name: 'codiff-public',
         migrations_dir: './db/migrations',
       },

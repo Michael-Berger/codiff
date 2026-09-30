@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1784208532000,
+      "tag": "0001_sharing",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1784208532001,
+      "tag": "0002_share_comment_section",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788480648000,
+      "tag": "0003_better_auth_account_issuer",
+      "breakpoints": true
+    }
+  ]
+}
