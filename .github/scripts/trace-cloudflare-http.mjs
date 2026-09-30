@@ -15,8 +15,18 @@ const trace = (line) => {
 
 if (/\/cf\/bin\/cf$/.test(process.argv[1] ?? '') && process.argv.includes('deploy')) {
   trace('cf HTTP trace active');
+  let fetchCount = 0;
+  const originalExit = process.exit.bind(process);
+  process.exit = (code) => {
+    if (code && code !== 0) {
+      trace(`cf exit ${code}: ${new Error().stack?.slice(0, 1800) ?? ''}`);
+    }
+    return originalExit(code);
+  };
+  process.on('exit', (code) => trace(`cf exit event ${code}, fetch calls=${fetchCount}`));
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input, init) => {
+    fetchCount++;
     let target = 'request';
     try {
       const request = typeof input === 'object' && input !== null ? input : undefined;
