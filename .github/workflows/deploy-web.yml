@@ -60,5 +60,26 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
+          WRANGLER_LOG: debug
+          WRANGLER_LOG_PATH: ${{ runner.temp }}/wrangler-logs
         run: |
           vp exec void deploy --platform cloudflare --atomic
+
+      - name: Diagnose failed Cloudflare deploy
+        if: failure()
+        env:
+          WRANGLER_LOG_PATH: ${{ runner.temp }}/wrangler-logs
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          files = sorted(Path(os.environ['WRANGLER_LOG_PATH']).glob('*'), key=lambda path: path.stat().st_mtime)
+          for path in files[-2:]:
+              print(f'Wrangler log: {path.name}')
+              for line in path.read_text(errors='replace').splitlines()[-80:]:
+                  line = re.sub(r'(?i)(Bearer|Basic)\s+\S+', r'\1 [redacted]', line)
+                  line = re.sub(r'(?i)((?:token|secret|password|authorization)["\s:=]+)\S+', r'\1[redacted]', line)
+                  print(line[:500])
+          PY
