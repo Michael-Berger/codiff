@@ -14,7 +14,7 @@ test('clones asset binding responses with mutable headers', () => {
 test('caches fingerprinted build assets without the binding no-cache directive', () => {
   const response = makeAssetResponseMutable(
     new Response('asset', { headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' } }),
-    '/__assets/app-123.js',
+    '/__assets-v2/app-123.js',
   );
 
   expect(response.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
@@ -22,10 +22,10 @@ test('caches fingerprinted build assets without the binding no-cache directive',
 });
 
 test.each([
-  ['/__assets/app-123.js', 'text/javascript; charset=utf-8'],
-  ['/__assets/app-123.css', 'text/css; charset=utf-8'],
-  ['/__assets/logo-123.webp', 'image/webp'],
-  ['/__assets/font-123.woff2', 'font/woff2'],
+  ['/__assets-v2/app-123.js', 'text/javascript; charset=utf-8'],
+  ['/__assets-v2/app-123.css', 'text/css; charset=utf-8'],
+  ['/__assets-v2/logo-123.webp', 'image/webp'],
+  ['/__assets-v2/font-123.woff2', 'font/woff2'],
 ])('adds a missing MIME type for %s', (pathname, contentType) => {
   const response = makeAssetResponseMutable(
     new Response(new TextEncoder().encode('asset')),
@@ -37,7 +37,7 @@ test.each([
 test('preserves an asset binding MIME type', () => {
   const response = makeAssetResponseMutable(
     new Response('asset', { headers: { 'Content-Type': 'application/javascript' } }),
-    '/__assets/app-123.js',
+    '/__assets-v2/app-123.js',
   );
   expect(response.headers.get('Content-Type')).toBe('application/javascript');
 });

@@ -15,7 +15,7 @@ const codiffSourceConditions = [
 const workspacePackages = ['@nkzw/codiff-core', '@nkzw/codiff-service'];
 
 export default defineConfig({
-  build: { assetsDir: '__assets' },
+  build: { assetsDir: '__assets-v2' },
   environments: {
     void_worker: {
       optimizeDeps: {

@@ -24,7 +24,7 @@ export const makeAssetResponseMutable = (response: Response, pathname?: string) 
       mutable.headers.set('Content-Type', contentType);
     }
   }
-  if (pathname?.startsWith('/__assets/')) {
+  if (pathname?.startsWith('/__assets-v2/')) {
     mutable.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
     mutable.headers.delete('Pragma');
   }
