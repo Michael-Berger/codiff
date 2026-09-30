@@ -38,7 +38,7 @@ jobs:
       - name: Install native-keymap dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libx11-dev libxkbfile-dev strace
+          sudo apt-get install --yes libx11-dev libxkbfile-dev
 
       - uses: voidzero-dev/setup-vp@v1.21.1
         with:
@@ -60,61 +60,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
-        run: |
-          NODE_OPTIONS="--import=$GITHUB_WORKSPACE/.github/scripts/trace-cloudflare-http.mjs" \
-            strace -f -e trace=wait4,waitid,exit_group -o "$RUNNER_TEMP/deploy-processes.log" \
-            vp exec void deploy --platform cloudflare --atomic
-
-      - name: Diagnose failed Cloudflare deploy
-        if: failure()
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          node <<'JS'
-          const { spawnSync } = require('node:child_process');
-          const { readFileSync } = require('node:fs');
-          const result = spawnSync('vp', ['exec', 'cf', 'auth', 'whoami'], {
-            encoding: 'utf8',
-            env: { ...process.env, CF_QUIET: '1' },
-          });
-          try {
-            const identity = JSON.parse(result.stdout);
-            console.log(JSON.stringify({
-              authStatus: result.status,
-              tokenValid: identity.tokenValid,
-              hasTargetAccount: identity.accounts?.some((account) => account.id === process.env.CLOUDFLARE_ACCOUNT_ID),
-              workerWrite: identity.scopes?.includes('workers-scripts.write'),
-            }));
-          } catch {
-            console.log(`Cloudflare identity check exited ${result.status}`);
-          }
-          try {
-            const events = readFileSync('/sys/fs/cgroup/memory.events', 'utf8');
-            console.log(events.split('\n').filter((line) => line.startsWith('oom')).join('\n'));
-          } catch {}
-          try {
-            const processes = readFileSync(`${process.env.RUNNER_TEMP}/deploy-processes.log`, 'utf8');
-            console.log(processes.split('\n').filter((line) => /SIGKILL|SIGSEGV|WIFSIGNALED|exit_group\(1\)/.test(line)).slice(-20).join('\n'));
-          } catch {}
-          try {
-            console.log(readFileSync(`${process.env.RUNNER_TEMP}/cf-http.log`, 'utf8'));
-          } catch {
-            console.log('cf HTTP trace did not start');
-          }
-          JS
-          status=$(curl --silent --show-error --output "$RUNNER_TEMP/cloudflare-write-probe.json" --write-out '%{http_code}' \
-            --request POST \
-            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            --header 'Content-Type: application/json' \
-            --data '{}' \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/codiff/versions")
-          echo "Worker version permission probe HTTP $status"
-          python3 - <<'PY'
-          import json
-          import os
-
-          with open(os.path.join(os.environ['RUNNER_TEMP'], 'cloudflare-write-probe.json')) as response:
-              result = json.load(response)
-          print('Cloudflare codes:', [error.get('code') for error in result.get('errors', [])])
-          PY
+        run: vp exec void deploy --platform cloudflare --atomic
