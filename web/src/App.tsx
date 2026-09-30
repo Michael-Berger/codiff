@@ -1,13 +1,14 @@
 import { Button, Thinking } from '@nkzw/codiff-core/react';
 import { GithubLogoIcon as GithubLogo } from '@phosphor-icons/react/GithubLogo';
 import { useRouter } from '@void/react';
-import { Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import Header from './Header.tsx';
 import HomeGuide from './HomeGuide.tsx';
-import ConnectPage from './sharing/ConnectPage.tsx';
-import PlanPage from './sharing/PlanPage.tsx';
-import StatsPage from './sharing/StatsPage.tsx';
-import WalkthroughPage from './sharing/WalkthroughPage.tsx';
+
+const ConnectPage = lazy(() => import('./sharing/ConnectPage.tsx'));
+const PlanPage = lazy(() => import('./sharing/PlanPage.tsx'));
+const StatsPage = lazy(() => import('./sharing/StatsPage.tsx'));
+const WalkthroughPage = lazy(() => import('./sharing/WalkthroughPage.tsx'));
 
 const PageThinking = () => (
   <div className="codiff-web-page-thinking">
@@ -162,7 +163,9 @@ export default function App() {
     return (
       <div className="codiff-web-shell">
         <Header />
-        <StatsPage />
+        <Suspense fallback={<PageThinking />}>
+          <StatsPage />
+        </Suspense>
       </div>
     );
   }

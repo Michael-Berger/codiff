@@ -10,3 +10,13 @@ test('clones asset binding responses with mutable headers', () => {
   expect(response.status).toBe(302);
   expect(response.headers.get('location')).toBe('https://codiff.dev/icon.png');
 });
+
+test('caches fingerprinted build assets without the binding no-cache directive', () => {
+  const response = makeAssetResponseMutable(
+    new Response('asset', { headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' } }),
+    '/__assets/app-123.js',
+  );
+
+  expect(response.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+  expect(response.headers.has('Pragma')).toBe(false);
+});

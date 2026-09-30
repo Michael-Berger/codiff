@@ -2,6 +2,7 @@ import { Menu } from '@base-ui/react/menu';
 import { CaretDownIcon as CaretDown } from '@phosphor-icons/react/CaretDown';
 import { useEffect, useState } from 'react';
 import { auth } from 'void/client/react';
+import icon from './assets/icon.webp';
 import SignInButton from './SignInButton.tsx';
 
 const getNameParts = (name: string) =>
@@ -65,7 +66,7 @@ export default function Header() {
     <header className="codiff-web-header">
       <div className="codiff-web-header-inner">
         <a className="codiff-web-brand" href="/">
-          <img alt="" className="codiff-web-brand-icon" draggable={false} src="/icon.png" />
+          <img alt="" className="codiff-web-brand-icon" draggable={false} src={icon} />
           <span>Codiff</span>
         </a>
         {isPending ? (

@@ -20,15 +20,10 @@ allowBuilds:
 blockExoticSubdeps: false
 minimumReleaseAgeExclude:
   - '@nkzw/*'
-  - void-fate@1.7.0
-  - '@void/deploy-cloudflare@0.21.2'
-  - '@void/deploy-core@0.21.2'
-  - '@void/edge@0.21.2'
-  - '@void/isr@0.21.2'
-  - '@void/platform@0.21.2'
-  - '@void/react@0.21.2'
-  - react-fate@1.7.0
-  - void@0.21.2
+  - void-fate
+  - '@void/*'
+  - react-fate
+  - void
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@1.0.0
   vite-plus: 1.0.0

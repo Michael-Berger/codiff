@@ -6,7 +6,7 @@ export const head = defineHead(() => ({
   htmlAttrs: { lang: 'en' },
   link: [
     { href: '/icon.png', rel: 'icon' },
-    { href: '/icon.png', rel: 'apple-touch-icon' },
+    { href: '/apple-touch-icon.png', rel: 'apple-touch-icon' },
   ],
   meta: [
     { charset: 'utf8' },
