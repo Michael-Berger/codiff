@@ -1,5 +1,5 @@
 diff --git a/dist/deploy-Bsymb0_c.mjs b/dist/deploy-Bsymb0_c.mjs
-index b14ba5aea8565b7e6c7d414de431bb74b5102593..48689eba83ba7aa7089574fb4b2c46b3a3920605 100644
+index b14ba5aea8565b7e6c7d414de431bb74b5102593..ea94aa4e8a28c07f9a3a5257ba050a504ec3f5cd 100644
 --- a/dist/deploy-Bsymb0_c.mjs
 +++ b/dist/deploy-Bsymb0_c.mjs
 @@ -44,7 +44,7 @@ import { r as resolveProjectBySlug, t as getRequestedProjectSlug } from "./resol
@@ -59,3 +59,12 @@ index b14ba5aea8565b7e6c7d414de431bb74b5102593..48689eba83ba7aa7089574fb4b2c46b3
  			}
  		};
  		walk("");
+@@ -7360,7 +7381,7 @@ function formatCloudflareActivationError(result) {
+ 			"Set CLOUDFLARE_WORKERS_SUBDOMAIN to your account subdomain (for example \"my-team\")",
+ 			"and retry. Void caches it after a successful workers.dev deployment; production traffic is unchanged."
+ 		].join("\n");
+-		case "readiness-staging-failed": return `deploy: Cloudflare could not stage the uploaded Worker Version at zero-percent traffic${status}; production traffic is unchanged.`;
++		case "readiness-staging-failed": return `deploy: Cloudflare could not stage the uploaded Worker Version at zero-percent traffic${status}; production traffic is unchanged.${cloudflareCode}${diagnostic}`;
+ 		case "readiness-failed": return ["deploy: the uploaded Worker Version did not pass /__void/ready.", formatCloudflareReadinessRestoration(result)].join("\n");
+ 		case "readiness-access-denied": return [
+ 			"deploy: Cloudflare Access blocked the uploaded Worker Version readiness probe.",
