@@ -127,7 +127,7 @@ vp run --filter '@nkzw/codiff-web' dev
 ```
 
 This applies local D1 migrations and starts the service at
-`http://localhost:6002`. Local state is stored under `web/.wrangler/`.
+`http://localhost:6002`. Local state is stored under `web/.void/`.
 
 When server views or Fate schema types change, regenerate the client:
 
@@ -180,32 +180,33 @@ migration instead.
 ### Deploy a Separate Instance
 
 Deployment is not required for normal contributions. To run your own instance,
-work from the web package, log in with Wrangler, and create its storage:
+work from the web package and connect Void to the Cloudflare account for your
+domain:
 
 ```bash
 cd web
-vp exec wrangler login
-vp exec wrangler d1 create codiff-public
-vp exec wrangler r2 bucket create codiff-public-shares
+vp exec void cloudflare login
+vp exec void connect --platform cloudflare
 ```
 
-Update `web/wrangler.jsonc` with the D1 database ID, Worker name, R2 bucket,
-`PUBLIC_ORIGIN`, and route for your domain.
+Update `web/void.config.ts` with a unique Worker name, D1 database name, R2
+bucket name, `PUBLIC_ORIGIN`, and route for your domain. Void provisions new
+storage or adopts resources with those names during deployment.
 
 Set the production secrets:
 
 ```bash
-vp exec wrangler secret put AUTH_GITHUB_CLIENT_ID
-vp exec wrangler secret put AUTH_GITHUB_CLIENT_SECRET
-vp exec wrangler secret put BETTER_AUTH_SECRET
+vp exec void secret put AUTH_GITHUB_CLIENT_ID
+vp exec void secret put AUTH_GITHUB_CLIENT_SECRET
+vp exec void secret put BETTER_AUTH_SECRET
 ```
 
-Apply migrations before deploying:
+Deploy the Worker and apply pending D1 migrations:
 
 ```bash
-vp exec wrangler d1 migrations apply codiff-public --remote
-vp run deploy:dry-run
-vp run deploy
+vp run --filter '@nkzw/codiff-core' build
+vp run --filter '@nkzw/codiff-service' build
+vp exec void deploy --platform cloudflare
 ```
 
 Do not deploy a pull request or use the `codiff.dev` production resources

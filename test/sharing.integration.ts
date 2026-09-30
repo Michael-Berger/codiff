@@ -1,11 +1,38 @@
-/// <reference types="@cloudflare/vitest-plugin/types" />
-
-import { env, SELF } from 'cloudflare:test';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { fileURLToPath } from 'node:url';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
+import { createTestHarness } from 'wrangler';
 import { handleSharingApiRequest, type SharingBucket, type SharingEnv } from '../service/api.ts';
 import { hashUploadIntentSecret } from '../service/upload-intent.ts';
 
 const origin = 'https://test.codiff.local';
+
+const server = createTestHarness({
+  root: fileURLToPath(new URL('..', import.meta.url)),
+  workers: [
+    {
+      configPath: 'web/dist/ssr/wrangler.json',
+      secrets: {
+        AUTH_GITHUB_CLIENT_ID: 'test-github-client-id',
+        AUTH_GITHUB_CLIENT_SECRET: 'test-github-client-secret',
+        BETTER_AUTH_SECRET: 'test-better-auth-secret-at-least-32-characters',
+      },
+      vars: { PUBLIC_ORIGIN: origin },
+    },
+  ],
+});
+const worker = server.getWorker<{ DB: D1Database; WALKTHROUGH_BUCKET: R2Bucket }>();
+let env: Awaited<ReturnType<typeof worker.getEnv>>;
+const SELF = worker;
+
+beforeAll(async () => {
+  await server.listen();
+  await worker.applyD1Migrations('DB');
+  env = await worker.getEnv();
+});
+
+afterAll(async () => {
+  await server.close();
+});
 
 const planSnapshot = {
   codiffVersion: '1.8.0',
@@ -159,9 +186,10 @@ const grace: GitHubProfile = {
   name: 'Grace Hopper',
 };
 
-const readJson = async <Value>(response: Response) => (await response.json()) as Value;
+const readJson = async <Value>(response: { json(): Promise<unknown> }) =>
+  (await response.json()) as Value;
 
-const readCookies = (response: Response) =>
+const readCookies = (response: { headers: { getSetCookie(): Array<string> } }) =>
   response.headers
     .getSetCookie()
     .map((cookie) => cookie.split(';', 1)[0])
@@ -289,6 +317,18 @@ const fateOperation = async (
       },
       method: 'POST',
     }),
+  );
+
+const queryShare = (name: 'planBySlug' | 'walkthroughBySlug', slug: string, cookie?: string) =>
+  fateOperation(
+    {
+      args: { slug },
+      id: `${name}-delete-capability`,
+      kind: 'query',
+      name,
+      select: ['canDelete', 'commentThreads.id', 'id'],
+    },
+    { cookie },
   );
 
 const claimIntent = async (intent: UploadIntent, cookie: string) => {
@@ -587,9 +627,9 @@ test('accepts only one concurrent upload for an intent', async () => {
     uploadShare(intent, planSnapshot),
     uploadShare(intent, planSnapshot),
   ]);
-  expect(responses.map((response: Response) => response.status).sort()).toEqual([200, 401]);
+  expect(responses.map((response) => response.status).sort()).toEqual([200, 401]);
 
-  const successful = responses.find((response: Response) => response.status === 200);
+  const successful = responses.find((response) => response.status === 200);
   if (!successful) {
     throw new Error('Expected one upload to succeed.');
   }
@@ -928,18 +968,6 @@ test('allows only share owners to delete plans and walkthroughs', async () => {
   const otherCookie = await signInWithGitHub(grace);
   const sharedPlan = await createAndUpload(ownerCookie, 'plan');
   const sharedWalkthrough = await createAndUpload(ownerCookie, 'walkthrough');
-
-  const queryShare = (name: 'planBySlug' | 'walkthroughBySlug', slug: string, cookie?: string) =>
-    fateOperation(
-      {
-        args: { slug },
-        id: `${name}-delete-capability`,
-        kind: 'query',
-        name,
-        select: ['canDelete', 'commentThreads.id', 'id'],
-      },
-      { cookie },
-    );
 
   expect((await queryShare('planBySlug', sharedPlan.slug)).results[0]).toMatchObject({
     data: { canDelete: false },

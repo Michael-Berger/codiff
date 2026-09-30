@@ -5,11 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "vp build",
-    "db:migrate": "vp exec wrangler d1 migrations apply codiff-public --local",
-    "db:migrate:remote": "vp exec wrangler d1 migrations apply DB --remote",
-    "deploy": "vp build && vp run db:migrate:remote && vp exec wrangler deploy",
-    "deploy:dry-run": "vp build && vp exec wrangler deploy --dry-run",
-    "dev": "vp run db:migrate && vp dev",
+    "db:migrate": "vp exec void db migrate",
+    "db:migrate:remote": "vp exec void db migrate --remote",
+    "deploy": "vp exec void deploy --platform cloudflare",
+    "dev": "vp dev",
     "fate:generate": "node ../node_modules/react-fate/lib/cli.mjs generate"
   },
   "dependencies": {
@@ -17,14 +16,14 @@
     "@nkzw/codiff-core": "workspace:*",
     "@nkzw/codiff-service": "workspace:*",
     "@phosphor-icons/react": "^2.1.10",
-    "@void/react": "0.10.13",
-    "better-auth": "^1.7.5",
-    "cf-fate": "^1.5.1",
+    "@void/react": "0.21.2",
+    "better-auth": "^1.7.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "react-error-boundary": "^6.1.5",
-    "react-fate": "^1.5.1",
-    "void": "^0.10.13"
+    "react-error-boundary": "^6.1.6",
+    "react-fate": "^1.7.0",
+    "void": "^0.21.2",
+    "void-fate": "^1.7.0"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "^0.2.4",
@@ -34,7 +33,6 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "typescript": "^7.0.2",
     "vite": "catalog:",
-    "vite-plus": "catalog:",
-    "wrangler": "^4.131.2"
+    "vite-plus": "catalog:"
   }
 }

@@ -1,26 +1,17 @@
-import type { SharingFateEnv } from '@nkzw/codiff-service/fate';
-import {
-  createCloudflareFateLive,
-  createCloudflareFateLiveDurableObject,
-  defineCloudflareFateLiveStream,
-} from 'cf-fate/server';
+import { createVoidFateLive } from 'void-fate/server';
+import { defineLiveStream } from 'void/live';
 
-export const fateLive = createCloudflareFateLive<SharingFateEnv>();
+export const fateLive = createVoidFateLive();
 export const { live } = fateLive;
 
-type FateStream = ReturnType<typeof defineCloudflareFateLiveStream<SharingFateEnv>>;
+type FateStream = ReturnType<typeof defineLiveStream>;
 const registry = globalThis as typeof globalThis & {
   __codiffPublicFateStream?: FateStream;
 };
 
 export const fateStream =
   registry.__codiffPublicFateStream ??
-  (registry.__codiffPublicFateStream = defineCloudflareFateLiveStream<SharingFateEnv>({
+  (registry.__codiffPublicFateStream = defineLiveStream({
     allowAnonymousControl: true,
-    binding: 'FATE_LIVE',
     id: 'fate',
   }));
-
-export const FateLiveDurableObject = createCloudflareFateLiveDurableObject({
-  binding: 'FATE_LIVE',
-});

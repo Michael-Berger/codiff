@@ -1,5 +1,5 @@
 import { handleSharingApiRequest, type SharingEnv } from '@nkzw/codiff-service/api';
-import { defineCloudflareFateLiveRoute } from 'cf-fate/server';
+import { defineVoidFateLiveRoute } from 'void-fate/server';
 import { fateServer } from './fate.ts';
 import { fateLive, fateStream, live } from './live.ts';
 
@@ -21,4 +21,4 @@ export const handleFateRequest = (request: Request, env: SharingEnv, auth: unkno
     fateServer.handleRequest(request, { auth, env, request }),
   );
 
-export const fateLiveRoute = defineCloudflareFateLiveRoute(fateStream);
+export const fateLiveRoute = defineVoidFateLiveRoute(fateStream);

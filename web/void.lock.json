@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "source": {
+    "compatibility_date": "2026-07-16",
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "codiff-public",
+        "migrations_dir": "./db/migrations"
+      }
+    ],
+    "keep_vars": true,
+    "migrations": [
+      {
+        "new_sqlite_classes": ["FateLiveDurableObject"],
+        "tag": "fate-live-v1"
+      },
+      {
+        "deleted_classes": ["FateLiveDurableObject"],
+        "new_sqlite_classes": ["VoidLiveStreamDurableObject"],
+        "tag": "live-v1"
+      }
+    ],
+    "name": "codiff",
+    "observability": {
+      "logs": {
+        "enabled": true,
+        "invocation_logs": true
+      }
+    },
+    "r2_buckets": [
+      {
+        "binding": "WALKTHROUGH_BUCKET",
+        "bucket_name": "codiff-public-shares"
+      }
+    ],
+    "routes": [
+      {
+        "custom_domain": true,
+        "pattern": "codiff.dev"
+      }
+    ],
+    "vars": {
+      "PUBLIC_ORIGIN": "https://codiff.dev"
+    },
+    "workers_dev": false
+  },
+  "resolved": {
+    "compatibility_date": "2026-07-16",
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "codiff-public",
+        "migrations_dir": "./db/migrations"
+      }
+    ],
+    "name": "codiff",
+    "observability": {
+      "logs": {
+        "enabled": true,
+        "invocation_logs": true
+      }
+    },
+    "r2_buckets": [
+      {
+        "binding": "WALKTHROUGH_BUCKET",
+        "bucket_name": "codiff-public-shares"
+      }
+    ],
+    "routes": [
+      {
+        "pattern": "codiff.dev",
+        "custom_domain": true
+      }
+    ],
+    "vars": {
+      "PUBLIC_ORIGIN": "https://codiff.dev"
+    },
+    "workers_dev": false,
+    "keep_vars": true,
+    "migrations": [
+      {
+        "new_sqlite_classes": ["FateLiveDurableObject"],
+        "tag": "fate-live-v1"
+      },
+      {
+        "deleted_classes": ["FateLiveDurableObject"],
+        "new_sqlite_classes": ["VoidLiveStreamDurableObject"],
+        "tag": "live-v1"
+      }
+    ]
+  },
+  "text": "{\n  \"compatibility_date\": \"2026-07-16\",\n  \"d1_databases\": [\n    {\n      \"binding\": \"DB\",\n      \"database_name\": \"codiff-public\",\n      \"migrations_dir\": \"./db/migrations\"\n    }\n  ],\n  \"name\": \"codiff\",\n  \"observability\": {\n    \"logs\": {\n      \"enabled\": true,\n      \"invocation_logs\": true\n    }\n  },\n  \"r2_buckets\": [\n    {\n      \"binding\": \"WALKTHROUGH_BUCKET\",\n      \"bucket_name\": \"codiff-public-shares\"\n    }\n  ],\n  \"routes\": [\n    {\n      \"pattern\": \"codiff.dev\",\n      \"custom_domain\": true\n    }\n  ],\n  \"vars\": {\n    \"PUBLIC_ORIGIN\": \"https://codiff.dev\"\n  },\n  \"workers_dev\": false,\n  \"keep_vars\": true,\n  \"migrations\": [\n    {\n      \"new_sqlite_classes\": [\n        \"FateLiveDurableObject\"\n      ],\n      \"tag\": \"fate-live-v1\"\n    },\n    {\n      \"deleted_classes\": [\n        \"FateLiveDurableObject\"\n      ],\n      \"new_sqlite_classes\": [\n        \"VoidLiveStreamDurableObject\"\n      ],\n      \"tag\": \"live-v1\"\n    }\n  ]\n}\n"
+}

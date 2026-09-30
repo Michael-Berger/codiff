@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run"
+    "test": "vp test"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.1.9",
-    "vitest": "4.1.11"
+    "vitest": "catalog:",
+    "wrangler": "^4.143.0"
   }
 }
