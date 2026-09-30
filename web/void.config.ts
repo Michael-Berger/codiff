@@ -31,6 +31,7 @@ export default defineConfig({
         invocation_logs: true,
       },
     },
+    preview_urls: false,
     r2_buckets: [
       {
         binding: 'WALKTHROUGH_BUCKET',
