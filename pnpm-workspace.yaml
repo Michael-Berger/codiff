@@ -39,9 +39,7 @@ overrides:
   extract-zip>yauzl: ^3.4.0
   vite@*: 'catalog:'
 patchedDependencies:
-  '@void/deploy-cloudflare@0.21.2': patches/@void__deploy-cloudflare@0.21.2.patch
   native-keymap@3.3.9: patches/native-keymap@3.3.9.patch
-  void@0.21.2: patches/void@0.21.2.patch
 peerDependencyRules:
   allowAny:
     - vite

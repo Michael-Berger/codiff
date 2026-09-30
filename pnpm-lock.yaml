@@ -179,9 +179,7 @@ overrides:
   vite@*: npm:@voidzero-dev/vite-plus-core@1.0.0
 
 patchedDependencies:
-  '@void/deploy-cloudflare@0.21.2': d7f9de23f29c8554807aa90e272d5957b83654c554aaf9bfd6216a0b68cc4029
   native-keymap@3.3.9: 385affd59fcaeb63b0596da3fca88c73b24116b7571e2ac0a4b8fe20500373b3
-  void@0.21.2: c851dd38570acbb325e5cf4051de0e1bf6110b67dcbe6b956d1df20521b5b3ed
 
 importers:
 
@@ -310,7 +308,7 @@ importers:
         version: link:../core
       '@nkzw/fate':
         specifier: ^1.7.0
-        version: 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))
+        version: 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@types/node@26.6.3)(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2)
       drizzle-orm:
         specifier: ^0.45.3
         version: 0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0)
@@ -348,8 +346,8 @@ importers:
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@void/react':
-        specifier: 0.21.2
-        version: 0.21.2(@rolldown/plugin-babel@0.2.4(@babel/core@8.0.6)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(rolldown@1.2.11))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(void@0.21.2(patch_hash=c851dd38570acbb325e5cf4051de0e1bf6110b67dcbe6b956d1df20521b5b3ed)(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5))
+        specifier: 0.21.3
+        version: 0.21.3(@rolldown/plugin-babel@0.2.4(@babel/core@8.0.6)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(rolldown@1.2.11))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(void@0.21.3(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5))
       better-auth:
         specifier: ^1.7.6
         version: 1.7.6(drizzle-kit@0.31.11)(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1)
@@ -364,13 +362,13 @@ importers:
         version: 6.1.6(@types/react@19.3.0)(react@19.3.0)
       react-fate:
         specifier: ^1.7.0
-        version: 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@types/node@26.6.3)(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2)
       void:
-        specifier: ^0.21.2
-        version: 0.21.2(patch_hash=c851dd38570acbb325e5cf4051de0e1bf6110b67dcbe6b956d1df20521b5b3ed)(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5)
+        specifier: ^0.21.3
+        version: 0.21.3(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5)
       void-fate:
         specifier: ^1.7.0
-        version: 1.7.0(9218942ebb9322347b2867f63e456cf4)
+        version: 1.7.0(81fc6a0105229b54bb977ab48c84cdc7)
     devDependencies:
       '@rolldown/plugin-babel':
         specifier: ^0.2.4
@@ -2295,15 +2293,12 @@ packages:
       drizzle-orm: ^0.45.0
       graphql: ^16.0.0 || ^17.0.0
       graphql-sse: ^2.6.0
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
     peerDependenciesMeta:
       drizzle-orm:
         optional: true
       graphql:
         optional: true
       graphql-sse:
-        optional: true
-      vite:
         optional: true
 
   '@nkzw/mdx-editor@1.0.3':
@@ -3613,28 +3608,28 @@ packages:
   '@vitest/utils@5.0.1':
     resolution: {integrity: sha512-E9+yEA+jsfaoxZcUHFzEqUrQcoNh2EwrPT5efIqkUPUwD5Ua2Li9BRWaYeRwvzvdLgTSVrre8oKNeyrfg7KkdQ==}
 
-  '@void/deploy-cloudflare@0.21.2':
-    resolution: {integrity: sha512-EuLENdQX/Alc5CR8htwugEVk7cvrC71QkmExBlIQWLD9nzQDwt1JoPbCyG4sSiofPg30tzK4uVK63GXkZ50FMw==}
+  '@void/deploy-cloudflare@0.21.3':
+    resolution: {integrity: sha512-IaDeD2JqS21WRmNkJrsH5xEFhbq38gQAppI0LeG4H0Kl98LP0LFiQwMODzshShM6dmFxLid7vaTbey8HWgyWgw==}
 
-  '@void/deploy-core@0.21.2':
-    resolution: {integrity: sha512-gTlVJacaP/pnJoSnqh8Au0qtmY8QdP2DUrNJFJh2rMJZawAqUv19UcCW+fsHmahY1J7zDtNbALgDhXSBEN1VSg==}
+  '@void/deploy-core@0.21.3':
+    resolution: {integrity: sha512-TMpFlsCo/ME1Q09tsdrbNEdSGPCnTxz5RMaZtsTUbpKWapIRfZkXEPwOVNkr6O/pae/UKOS1SdJWXBC88xAFuA==}
 
-  '@void/edge@0.21.2':
-    resolution: {integrity: sha512-Jwn9a2X0zp3uPDB2XjxE29HM7j4jBmizjnZgxILeZr9cIS0eelYYa0tkVbrZoJDSkSEF0YaGBTOmL71He4BQmg==}
+  '@void/edge@0.21.3':
+    resolution: {integrity: sha512-o7VO8McPlP4N/tCT4+zja7lhDlui550hwi74ybzRqhnJuzNKEj4Vl8hizQoYBURBh+N8m3z9+qmGrkJB4NhozA==}
 
-  '@void/isr@0.21.2':
-    resolution: {integrity: sha512-dZPluLfYgbk3FWqs0lkcLImIUleIpIWpamPtrv2hNUasnSsRZ8jngVgkjk1dD+T1vage3+EU7cuZbLpj/nq4kg==}
+  '@void/isr@0.21.3':
+    resolution: {integrity: sha512-qRHZp5jTZ7niD6B+Y8Z3msZ23ubigV05brnLCNFtzKpk3iQJ3YpDeXacl6MCUVX6DbIoCpowqUqciSC9UWfNSA==}
 
-  '@void/platform@0.21.2':
-    resolution: {integrity: sha512-xzTyPDXg+TaBAWTGjYWQV1yA9UzJDdRnnlwBtyB7M2CESGoaEduTgg2QuQWTY7DLgC+3nlJ2+VNhrj8iC4r9pA==}
+  '@void/platform@0.21.3':
+    resolution: {integrity: sha512-8LQRTXWcwgXTrJNqsEBcFamptisbPFn1vPTI7szTD3roqLkHbzjiCo50+Biwby78nDc5hXl/7xir9U4dYOkNbQ==}
 
-  '@void/react@0.21.2':
-    resolution: {integrity: sha512-D7688OnlmRzLTCFRnKePlih+8pveF6HMdF7aScisVj5C4lXjkzDNczjqfA9hpT1EjUiAMGQza243KMNzB43ZVw==}
+  '@void/react@0.21.3':
+    resolution: {integrity: sha512-i9AA44NDdweN153dOkuNEr+s2bwrnxPzk3b2fVurja49TOp3D4kvkiVYSi6Q/UswB8YENlbyT4pnjh1hAOs7iw==}
     peerDependencies:
       react: ^19.0.0
       react-dom: ^19.0.0
       vite: ^8.0.0
-      void: 0.21.2
+      void: 0.21.3
 
   '@voidzero-dev/vite-plus-core@1.0.0':
     resolution: {integrity: sha512-GHCd6d7h3JVojI/yxe/EAHwX5gn+OI7G932VBnYoTiwATLJrvHOs+okx7Ek2LGEJ57NJRENwCFgVYefjwPLfFA==}
@@ -6928,12 +6923,12 @@ packages:
       react-fate: ^1.0.0-rc.0
       void: ^0.21.2
 
-  void@0.21.2:
-    resolution: {integrity: sha512-3yPlKBz6WusqfEptsXlM7T89BbWe0r5Fea4dx9zpLTqV/+i0ZNi0mx/zC3e9DNVFPfr8OTBRoFcO4eLDNUtJqw==}
+  void@0.21.3:
+    resolution: {integrity: sha512-iXfHXyDCaUCXrqvRSGuMgHrnvn+4z1uPALo4+usNnjwpikxAE4Rs9br89KAvKlXYU0q8yTnkNAgiS6FBJjJa6w==}
     engines: {node: '>=24.21.0'}
     hasBin: true
     peerDependencies:
-      '@void/md': 0.21.2
+      '@void/md': 0.21.3
       arktype: '>=2.0.0'
       valibot: '>=1.0.0-beta.7'
       vite: ^8.0.0
@@ -9184,14 +9179,32 @@ snapshots:
     dependencies:
       eslint: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
 
-  '@nkzw/fate@1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))':
+  '@nkzw/fate@1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@types/node@26.6.3)(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2)':
     dependencies:
       '@trpc/client': 11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2)
       superjson: 2.2.6
+      vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2)'
       zod: 4.6.5
     optionalDependencies:
       drizzle-orm: 0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0)
-      vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2)'
+    transitivePeerDependencies:
+      - '@arethetypeswrong/core'
+      - '@types/node'
+      - '@vitejs/devtools'
+      - esbuild
+      - jiti
+      - less
+      - publint
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - terser
+      - tsx
+      - typescript
+      - unplugin-unused
+      - unrun
+      - yaml
 
   '@nkzw/mdx-editor@1.0.3(@codemirror/language@6.12.4)(@lezer/highlight@1.2.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)(typescript@7.0.2)(yjs@13.6.33)':
     dependencies:
@@ -10316,33 +10329,33 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.1
 
-  '@void/deploy-cloudflare@0.21.2(patch_hash=d7f9de23f29c8554807aa90e272d5957b83654c554aaf9bfd6216a0b68cc4029)':
+  '@void/deploy-cloudflare@0.21.3':
     dependencies:
-      '@void/deploy-core': 0.21.2
+      '@void/deploy-core': 0.21.3
       jsonc-parser: 3.3.1
 
-  '@void/deploy-core@0.21.2': {}
+  '@void/deploy-core@0.21.3': {}
 
-  '@void/edge@0.21.2':
+  '@void/edge@0.21.3':
     dependencies:
-      '@void/deploy-core': 0.21.2
+      '@void/deploy-core': 0.21.3
 
-  '@void/isr@0.21.2':
+  '@void/isr@0.21.3':
     dependencies:
       '@cloudflare/workers-types': 4.20260702.1
-      '@void/edge': 0.21.2
+      '@void/edge': 0.21.3
 
-  '@void/platform@0.21.2':
+  '@void/platform@0.21.3':
     dependencies:
       pathslash: 0.1.0
 
-  '@void/react@0.21.2(@rolldown/plugin-babel@0.2.4(@babel/core@8.0.6)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(rolldown@1.2.11))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(void@0.21.2(patch_hash=c851dd38570acbb325e5cf4051de0e1bf6110b67dcbe6b956d1df20521b5b3ed)(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5))':
+  '@void/react@0.21.3(@rolldown/plugin-babel@0.2.4(@babel/core@8.0.6)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(rolldown@1.2.11))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(void@0.21.3(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5))':
     dependencies:
       '@vitejs/plugin-react': 6.1.1(@rolldown/plugin-babel@0.2.4(@babel/core@8.0.6)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(rolldown@1.2.11))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(babel-plugin-react-compiler@1.0.0)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       vite: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2)'
-      void: 0.21.2(patch_hash=c851dd38570acbb325e5cf4051de0e1bf6110b67dcbe6b956d1df20521b5b3ed)(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5)
+      void: 0.21.3(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5)
     transitivePeerDependencies:
       - '@rolldown/plugin-babel'
       - babel-plugin-react-compiler
@@ -13046,17 +13059,33 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  react-fate@1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  react-fate@1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@types/node@26.6.3)(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2):
     dependencies:
-      '@nkzw/fate': 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))
+      '@nkzw/fate': 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@types/node@26.6.3)(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
     transitivePeerDependencies:
+      - '@arethetypeswrong/core'
       - '@trpc/client'
+      - '@types/node'
+      - '@vitejs/devtools'
       - drizzle-orm
+      - esbuild
       - graphql
       - graphql-sse
-      - vite
+      - jiti
+      - less
+      - publint
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - terser
+      - tsx
+      - typescript
+      - unplugin-unused
+      - unrun
+      - yaml
 
   react-hook-form@7.87.0(react@19.3.0):
     dependencies:
@@ -13808,14 +13837,14 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  void-fate@1.7.0(9218942ebb9322347b2867f63e456cf4):
+  void-fate@1.7.0(81fc6a0105229b54bb977ab48c84cdc7):
     dependencies:
-      '@nkzw/fate': 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))
+      '@nkzw/fate': 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@types/node@26.6.3)(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2)
       react: 19.3.0
-      react-fate: 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      void: 0.21.2(patch_hash=c851dd38570acbb325e5cf4051de0e1bf6110b67dcbe6b956d1df20521b5b3ed)(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5)
+      react-fate: 1.7.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@7.0.2))(typescript@7.0.2))(@types/node@26.6.3)(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2)
+      void: 0.21.3(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5)
 
-  void@0.21.2(patch_hash=c851dd38570acbb325e5cf4051de0e1bf6110b67dcbe6b956d1df20521b5b3ed)(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5):
+  void@0.21.3(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(arktype@2.2.5)(kysely@0.29.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.5.0(typescript@7.0.2))(vitest@5.0.1)(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))(zod@4.6.5):
     dependencies:
       '@cloudflare/build-output-utils': 0.8.2
       '@cloudflare/config': 0.20.0
@@ -13823,11 +13852,11 @@ snapshots:
       '@cloudflare/vite-plugin': 1.54.7(@types/node@26.6.3)(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(typescript@7.0.2))(wrangler@4.143.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.6.3))
       '@cloudflare/workers-types': 4.20260702.1
       '@napi-rs/keyring': 2.0.0
-      '@void/deploy-cloudflare': 0.21.2(patch_hash=d7f9de23f29c8554807aa90e272d5957b83654c554aaf9bfd6216a0b68cc4029)
-      '@void/deploy-core': 0.21.2
-      '@void/edge': 0.21.2
-      '@void/isr': 0.21.2
-      '@void/platform': 0.21.2
+      '@void/deploy-cloudflare': 0.21.3
+      '@void/deploy-core': 0.21.3
+      '@void/edge': 0.21.3
+      '@void/isr': 0.21.3
+      '@void/platform': 0.21.3
       acorn: 8.18.0
       better-auth: 1.7.6(drizzle-kit@0.31.11)(drizzle-orm@0.45.3(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.6)(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0))(mysql2@3.24.4(@types/node@26.6.3))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1)
       better-sqlite3: 13.0.3
