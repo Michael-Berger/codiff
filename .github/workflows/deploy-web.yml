@@ -60,26 +60,35 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
-          WRANGLER_LOG: debug
-          WRANGLER_LOG_PATH: ${{ runner.temp }}/wrangler-logs
         run: |
           vp exec void deploy --platform cloudflare --atomic
 
       - name: Diagnose failed Cloudflare deploy
         if: failure()
         env:
-          WRANGLER_LOG_PATH: ${{ runner.temp }}/wrangler-logs
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          python3 - <<'PY'
-          import os
-          import re
-          from pathlib import Path
-
-          files = sorted(Path(os.environ['WRANGLER_LOG_PATH']).glob('*'), key=lambda path: path.stat().st_mtime)
-          for path in files[-2:]:
-              print(f'Wrangler log: {path.name}')
-              for line in path.read_text(errors='replace').splitlines()[-80:]:
-                  line = re.sub(r'(?i)(Bearer|Basic)\s+\S+', r'\1 [redacted]', line)
-                  line = re.sub(r'(?i)((?:token|secret|password|authorization)["\s:=]+)\S+', r'\1[redacted]', line)
-                  print(line[:500])
-          PY
+          node <<'JS'
+          const { spawnSync } = require('node:child_process');
+          const { readFileSync } = require('node:fs');
+          const result = spawnSync('vp', ['exec', 'cf', 'auth', 'whoami'], {
+            encoding: 'utf8',
+            env: { ...process.env, CF_QUIET: '1' },
+          });
+          try {
+            const identity = JSON.parse(result.stdout);
+            console.log(JSON.stringify({
+              authStatus: result.status,
+              tokenValid: identity.tokenValid,
+              hasTargetAccount: identity.accounts?.some((account) => account.id === process.env.CLOUDFLARE_ACCOUNT_ID),
+              workerWrite: identity.scopes?.includes('workers-scripts.write'),
+            }));
+          } catch {
+            console.log(`Cloudflare identity check exited ${result.status}`);
+          }
+          try {
+            const events = readFileSync('/sys/fs/cgroup/memory.events', 'utf8');
+            console.log(events.split('\n').filter((line) => line.startsWith('oom')).join('\n'));
+          } catch {}
+          JS
