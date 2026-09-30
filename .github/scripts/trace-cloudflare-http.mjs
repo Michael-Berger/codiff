@@ -20,20 +20,26 @@ if (/\/cf\/bin\/cf$/.test(process.argv[1] ?? '') && process.argv.includes('deplo
   let requestCount = 0;
   subscribe('undici:request:headers', ({ request, response }) => {
     requestCount++;
-    if (response.statusCode >= 400) {
-      try {
-        const url = new URL(request.path, request.origin);
-        trace(
-          `cf transport ${request.method} ${url.hostname}${url.pathname.replaceAll(/\/[^/]{25,}/g, '/[id]')}: ${response.statusCode}`,
-        );
-      } catch {
-        trace(`cf transport response ${response.statusCode}`);
-      }
+    try {
+      const url = new URL(request.path, request.origin);
+      trace(
+        `cf transport ${request.method} ${url.hostname}${url.pathname.replaceAll(/\/[^/]{25,}/g, '/[id]')}: ${response.statusCode}`,
+      );
+    } catch {
+      trace(`cf transport response ${response.statusCode}`);
     }
   });
   subscribe('undici:request:error', ({ error }) => {
     trace(`cf transport error ${error?.code ?? error?.name ?? 'failed'}`);
   });
+  const originalParse = JSON.parse;
+  JSON.parse = (...args) => {
+    const value = originalParse(...args);
+    if (value?.success === false && Array.isArray(value.errors)) {
+      trace(`cf API response codes=${JSON.stringify(value.errors.map((error) => error.code))}`);
+    }
+    return value;
+  };
   const originalExit = process.exit.bind(process);
   process.exit = (code) => {
     if (code && code !== 0) {
