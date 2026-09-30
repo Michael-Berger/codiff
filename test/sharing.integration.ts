@@ -1,21 +1,106 @@
-/// <reference types="@cloudflare/vitest-plugin/types" />
-import { applyD1Migrations } from 'cloudflare:test';
-import { env as workerEnv, exports } from 'cloudflare:workers';
-import { afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
+import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import { handleSharingApiRequest, type SharingBucket, type SharingEnv } from '../service/api.ts';
 import { hashUploadIntentSecret } from '../service/upload-intent.ts';
 
 const origin = 'https://test.codiff.local';
 
-const env = workerEnv as unknown as {
-  DB: D1Database;
-  TEST_MIGRATIONS: Parameters<typeof applyD1Migrations>[1];
-  WALKTHROUGH_BUCKET: R2Bucket;
+const workerDir = fileURLToPath(new URL('../web/dist/ssr/', import.meta.url));
+const migrationDir = fileURLToPath(new URL('../web/db/migrations/', import.meta.url));
+const config = JSON.parse(readFileSync(join(workerDir, 'wrangler.json'), 'utf8')) as {
+  compatibility_date: string;
+  compatibility_flags: Array<string>;
+  d1_databases: Array<{ binding: string; database_id: string }>;
+  durable_objects: { bindings: Array<{ class_name: string; name: string }> };
+  r2_buckets: Array<{ binding: string; bucket_name: string }>;
 };
-const SELF = (exports as unknown as { default: Fetcher }).default;
+const workerFiles = (dir: string): Array<string> =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    return entry.isDirectory() ? workerFiles(path) : [path];
+  });
+const modules = workerFiles(workerDir)
+  .filter((path) => path.endsWith('.js'))
+  .sort((a, b) =>
+    relative(workerDir, a) === 'index.js'
+      ? -1
+      : relative(workerDir, b) === 'index.js'
+        ? 1
+        : a.localeCompare(b),
+  )
+  .map((path) => ({ path, type: 'ESModule' as const }));
+const server = new Miniflare(
+  convertV4MiniflareOptions({
+    bindings: {
+      AUTH_GITHUB_CLIENT_ID: 'test-github-client-id',
+      AUTH_GITHUB_CLIENT_SECRET: 'test-github-client-secret',
+      BETTER_AUTH_SECRET: 'test-better-auth-secret-at-least-32-characters',
+      PUBLIC_ORIGIN: origin,
+    },
+    compatibilityDate: config.compatibility_date,
+    compatibilityFlags: config.compatibility_flags,
+    d1Databases: Object.fromEntries(
+      config.d1_databases.map(({ binding, database_id }) => [binding, database_id]),
+    ),
+    durableObjects: Object.fromEntries(
+      config.durable_objects.bindings.map(({ class_name, name }) => [
+        name,
+        { className: class_name, useSQLite: true },
+      ]),
+    ),
+    modules,
+    modulesRoot: workerDir,
+    outboundService: (request) => mockGitHub(request),
+    r2Buckets: Object.fromEntries(
+      config.r2_buckets.map(({ binding, bucket_name }) => [binding, bucket_name]),
+    ),
+    serviceBindings: { ASSETS: () => new Response('Not Found', { status: 404 }) },
+  }),
+);
+let env: { DB: D1Database; WALKTHROUGH_BUCKET: R2Bucket };
+const SELF = {
+  fetch: (...args: Parameters<typeof server.dispatchFetch>) => server.dispatchFetch(...args),
+};
+
+const migrationStatements = (sql: string): Array<string> => {
+  const statements: Array<string> = [];
+  let statement = '';
+  let inTrigger = false;
+  for (const line of sql.split('\n')) {
+    if (/^CREATE TRIGGER\b/i.test(line)) {
+      inTrigger = true;
+    }
+    statement += `${line}\n`;
+    if (line.trimEnd().endsWith(';') && (!inTrigger || /^END;\s*$/i.test(line))) {
+      statements.push(statement.trim());
+      statement = '';
+      inTrigger = false;
+    }
+  }
+  if (statement.trim()) {
+    throw new Error('Unterminated D1 migration statement.');
+  }
+  return statements;
+};
 
 beforeAll(async () => {
-  await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
+  env = await server.getBindings<typeof env>();
+  const journal = JSON.parse(readFileSync(join(migrationDir, 'meta/_journal.json'), 'utf8')) as {
+    entries: Array<{ tag: string }>;
+  };
+  for (const { tag } of journal.entries) {
+    const sql = readFileSync(join(migrationDir, `${tag}.sql`), 'utf8');
+    for (const statement of migrationStatements(sql)) {
+      await env.DB.prepare(statement).run();
+    }
+  }
+});
+
+afterAll(async () => {
+  await server.dispose();
 });
 
 const planSnapshot = {
@@ -201,43 +286,36 @@ const clearState = async () => {
 
 let activeGitHubProfile = ada;
 
-const installGitHubMock = () => {
-  const nativeFetch = globalThis.fetch;
-  vi.stubGlobal(
-    'fetch',
-    async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
-      const request = new Request(input, init);
-      const url = new URL(request.url);
+const mockGitHub = async (request: { url: string }) => {
+  const url = new URL(request.url);
 
-      if (url.origin === 'https://github.com' && url.pathname === '/login/oauth/access_token') {
-        return Response.json({
-          access_token: `access-token-${activeGitHubProfile.login}`,
-          scope: 'read:user,user:email',
-          token_type: 'bearer',
-        });
-      }
-      if (url.origin === 'https://api.github.com' && url.pathname === '/user') {
-        return Response.json({
-          avatar_url: activeGitHubProfile.avatarUrl,
-          email: activeGitHubProfile.email,
-          id: activeGitHubProfile.id,
-          login: activeGitHubProfile.login,
-          name: activeGitHubProfile.name,
-        });
-      }
-      if (url.origin === 'https://api.github.com' && url.pathname === '/user/emails') {
-        return Response.json([
-          {
-            email: activeGitHubProfile.email,
-            primary: true,
-            verified: true,
-            visibility: 'private',
-          },
-        ]);
-      }
-      return nativeFetch(input, init);
-    },
-  );
+  if (url.origin === 'https://github.com' && url.pathname === '/login/oauth/access_token') {
+    return Response.json({
+      access_token: `access-token-${activeGitHubProfile.login}`,
+      scope: 'read:user,user:email',
+      token_type: 'bearer',
+    });
+  }
+  if (url.origin === 'https://api.github.com' && url.pathname === '/user') {
+    return Response.json({
+      avatar_url: activeGitHubProfile.avatarUrl,
+      email: activeGitHubProfile.email,
+      id: activeGitHubProfile.id,
+      login: activeGitHubProfile.login,
+      name: activeGitHubProfile.name,
+    });
+  }
+  if (url.origin === 'https://api.github.com' && url.pathname === '/user/emails') {
+    return Response.json([
+      {
+        email: activeGitHubProfile.email,
+        primary: true,
+        verified: true,
+        visibility: 'private',
+      },
+    ]);
+  }
+  throw new Error(`Unexpected outbound request: ${request.url}`);
 };
 
 const signInWithGitHub = async (profile: GitHubProfile, callbackURL = '/') => {
@@ -413,11 +491,6 @@ const setUsage = async (userId: string, planCount: number, walkthroughCount: num
 beforeEach(async () => {
   await clearState();
   activeGitHubProfile = ada;
-  installGitHubMock();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
 });
 
 test('requires GitHub authentication before an upload intent can persist or be claimed', async () => {
