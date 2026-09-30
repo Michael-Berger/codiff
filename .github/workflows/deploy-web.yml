@@ -61,4 +61,4 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
         run: |
-          vp exec void deploy --platform cloudflare
+          vp exec void deploy --platform cloudflare --atomic
