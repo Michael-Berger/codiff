@@ -97,6 +97,11 @@ jobs:
             const processes = readFileSync(`${process.env.RUNNER_TEMP}/deploy-processes.log`, 'utf8');
             console.log(processes.split('\n').filter((line) => /SIGKILL|SIGSEGV|WIFSIGNALED|exit_group\(1\)/.test(line)).slice(-20).join('\n'));
           } catch {}
+          try {
+            console.log(readFileSync(`${process.env.RUNNER_TEMP}/cf-http.log`, 'utf8'));
+          } catch {
+            console.log('cf HTTP trace did not start');
+          }
           JS
           status=$(curl --silent --show-error --output "$RUNNER_TEMP/cloudflare-write-probe.json" --write-out '%{http_code}' \
             --request POST \

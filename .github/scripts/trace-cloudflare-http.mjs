@@ -1,7 +1,20 @@
+import { appendFileSync } from 'node:fs';
 import process from 'node:process';
 import { URL } from 'node:url';
 
+const trace = (line) => {
+  if (!process.env.RUNNER_TEMP) {
+    return;
+  }
+  try {
+    appendFileSync(`${process.env.RUNNER_TEMP}/cf-http.log`, `${line}\n`);
+  } catch {
+    // Diagnostics must never interrupt deployment.
+  }
+};
+
 if (/\/cf\/bin\/cf$/.test(process.argv[1] ?? '') && process.argv.includes('deploy')) {
+  trace('cf HTTP trace active');
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input, init) => {
     let target = 'request';
@@ -25,13 +38,11 @@ if (/\/cf\/bin\/cf$/.test(process.argv[1] ?? '') && process.argv.includes('deplo
         } catch {
           // Non-JSON error responses have no Cloudflare error code.
         }
-        process.stderr.write(
-          `cf HTTP ${target}: ${response.status} codes=${JSON.stringify(codes)}\n`,
-        );
+        trace(`cf HTTP ${target}: ${response.status} codes=${JSON.stringify(codes)}`);
       }
       return response;
     } catch (error) {
-      process.stderr.write(`cf HTTP ${target}: ${error?.cause?.code ?? error?.name ?? 'failed'}\n`);
+      trace(`cf HTTP ${target}: ${error?.cause?.code ?? error?.name ?? 'failed'}`);
       throw error;
     }
   };
