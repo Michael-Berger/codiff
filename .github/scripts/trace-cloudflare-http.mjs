@@ -1,3 +1,4 @@
+import { subscribe } from 'node:diagnostics_channel';
 import { appendFileSync } from 'node:fs';
 import process from 'node:process';
 import { URL } from 'node:url';
@@ -16,6 +17,23 @@ const trace = (line) => {
 if (/\/cf\/bin\/cf$/.test(process.argv[1] ?? '') && process.argv.includes('deploy')) {
   trace('cf HTTP trace active');
   let fetchCount = 0;
+  let requestCount = 0;
+  subscribe('undici:request:headers', ({ request, response }) => {
+    requestCount++;
+    if (response.statusCode >= 400) {
+      try {
+        const url = new URL(request.path, request.origin);
+        trace(
+          `cf transport ${request.method} ${url.hostname}${url.pathname.replaceAll(/\/[^/]{25,}/g, '/[id]')}: ${response.statusCode}`,
+        );
+      } catch {
+        trace(`cf transport response ${response.statusCode}`);
+      }
+    }
+  });
+  subscribe('undici:request:error', ({ error }) => {
+    trace(`cf transport error ${error?.code ?? error?.name ?? 'failed'}`);
+  });
   const originalExit = process.exit.bind(process);
   process.exit = (code) => {
     if (code && code !== 0) {
@@ -23,7 +41,9 @@ if (/\/cf\/bin\/cf$/.test(process.argv[1] ?? '') && process.argv.includes('deplo
     }
     return originalExit(code);
   };
-  process.on('exit', (code) => trace(`cf exit event ${code}, fetch calls=${fetchCount}`));
+  process.on('exit', (code) =>
+    trace(`cf exit event ${code}, fetch calls=${fetchCount}, transport responses=${requestCount}`),
+  );
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input, init) => {
     fetchCount++;
