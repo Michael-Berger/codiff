@@ -16,13 +16,13 @@
     "@nkzw/codiff-core": "workspace:*",
     "@nkzw/codiff-service": "workspace:*",
     "@phosphor-icons/react": "^2.1.10",
-    "@void/react": "0.21.5",
+    "@void/react": "0.21.6",
     "better-auth": "^1.7.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-error-boundary": "^6.1.6",
     "react-fate": "^1.7.0",
-    "void": "^0.21.5",
+    "void": "^0.21.6",
     "void-fate": "^1.7.0"
   },
   "devDependencies": {
