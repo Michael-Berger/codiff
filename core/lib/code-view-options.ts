@@ -1,21 +1,12 @@
 import { registerCustomTheme, setCustomExtension } from '@pierre/diffs';
 import dunkelTheme from '../themes/dunkel.json' with { type: 'json' };
 import lichtTheme from '../themes/licht.json' with { type: 'json' };
-import type { DiffSection, GitFileStatus } from '../types.ts';
+import type { DiffSection } from '../types.ts';
 
 registerCustomTheme('Licht', async () => lichtTheme as never);
 registerCustomTheme('Dunkel', async () => dunkelTheme as never);
 setCustomExtension('cts', 'typescript');
 setCustomExtension('mts', 'typescript');
-
-export const statusLabel: Record<GitFileStatus, string> = {
-  added: 'Added',
-  conflicted: 'Conflicted',
-  deleted: 'Deleted',
-  modified: 'Modified',
-  renamed: 'Renamed',
-  untracked: 'Untracked',
-};
 
 export const sectionLabel: Record<DiffSection['kind'], string> = {
   commit: 'Commit',
@@ -52,7 +43,9 @@ export const workerHighlighterOptions = {
     light: 'Licht',
   },
   tokenizeMaxLineLength: 20_000,
-  useTokenTransformer: false,
+  // Pierre's editor requires token metadata. Generate it in the workers so
+  // entering edit mode can reuse the highlighted result without a local pass.
+  useTokenTransformer: true,
 };
 
 export const maxWorkerThreads = 3;

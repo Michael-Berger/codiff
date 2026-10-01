@@ -32,6 +32,9 @@ export function useAppKeyboardShortcuts({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) {
+        return;
+      }
       if (matchesShortcut(event, keymap, 'commandBar')) {
         event.preventDefault();
         setCommandBarVisible((current) => !current);

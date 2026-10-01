@@ -66,7 +66,7 @@ test('readWindowState returns null when width is below minimum', async () => {
   await using directory = await createTemporaryDirectory('codiff-ws-');
   await writeFile(
     join(directory.path, 'window-state.json'),
-    JSON.stringify({ ...validState, width: 500 }),
+    JSON.stringify({ ...validState, width: 479 }),
   );
   expect(readWindowState(directory.path)).toBeNull();
 });
@@ -75,7 +75,7 @@ test('readWindowState returns null when height is below minimum', async () => {
   await using directory = await createTemporaryDirectory('codiff-ws-');
   await writeFile(
     join(directory.path, 'window-state.json'),
-    JSON.stringify({ ...validState, height: 400 }),
+    JSON.stringify({ ...validState, height: 319 }),
   );
   expect(readWindowState(directory.path)).toBeNull();
 });
@@ -102,9 +102,15 @@ test('writeWindowState creates directory and file', async () => {
   expect(readWindowState(nested)).toEqual(validState);
 });
 
-test('write then read round-trips correctly', async () => {
+test('write then read preserves small window dimensions and display state', async () => {
   await using directory = await createTemporaryDirectory('codiff-ws-');
-  const state = { ...validState, isFullScreen: true, isMaximized: true };
+  const state = {
+    ...validState,
+    height: 320,
+    isFullScreen: true,
+    isMaximized: true,
+    width: 480,
+  };
   writeWindowState(state, directory.path);
   expect(readWindowState(directory.path)).toEqual(state);
 });

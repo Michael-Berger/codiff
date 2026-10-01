@@ -20,12 +20,15 @@ import type {
   PlanHandoffStatus,
   PlanReview,
   RepositoryHistory,
+  RepositoryFileDocument,
   RepositoryState,
   ReviewAssistantRequest,
   ReviewAssistantResult,
   ReviewSource,
   SaveMarkdownDocumentRequest,
   SaveMarkdownDocumentResult,
+  SaveRepositoryFileRequest,
+  SaveRepositoryFileResult,
   SharePlanResult,
   SharedWalkthroughSnapshot,
   ShareWalkthroughResult,
@@ -72,6 +75,7 @@ declare global {
       ) => Promise<NarrativeWalkthroughResult>;
       getPlanReview: () => Promise<PlanReview | null>;
       getPreferences: () => Promise<CodiffPreferences>;
+      getRepositoryFile: (path: string) => Promise<RepositoryFileDocument>;
       getRepositoryHistory: (limit?: number, source?: ReviewSource) => Promise<RepositoryHistory>;
       getRepositoryState: (source?: ReviewSource) => Promise<RepositoryState>;
       getTerminalHelperStatus: () => Promise<TerminalHelperStatus>;
@@ -110,6 +114,7 @@ declare global {
         request: SaveMarkdownDocumentRequest,
       ) => Promise<SaveMarkdownDocumentResult>;
       savePlanReview: (review: PlanReview) => Promise<PlanReview>;
+      saveRepositoryFile: (request: SaveRepositoryFileRequest) => Promise<SaveRepositoryFileResult>;
       setDiffStyle: (value: CodiffPreferences['diffStyle']) => Promise<void>;
       setShowOutdated: (value: boolean) => Promise<void>;
       setWordWrap: (value: boolean) => Promise<void>;

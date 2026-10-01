@@ -2849,10 +2849,55 @@ html[data-codiff-platform='darwin'] .sidebar {
   grid-auto-columns: max-content;
   grid-auto-flow: column;
   gap: 10px;
-  height: 54px;
-  grid-template-columns: minmax(0, 1fr);
+  height: var(--codiff-file-header-height, 54px);
+  grid-template-columns: minmax(0, 1fr) auto;
   min-width: 0;
   padding: 9px 10px;
+}
+
+.codiff-file-details {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.codiff-edit-revert-button {
+  width: 64px;
+}
+
+.compact-file-headers .codiff-file-header:has(.codiff-file-details) {
+  gap: 6px;
+  grid-auto-flow: row;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 30px;
+}
+
+.compact-file-headers .codiff-file-details {
+  gap: 6px;
+  justify-content: safe flex-end;
+  margin: -4px;
+  overflow-x: auto;
+  padding: 4px;
+  scrollbar-width: none;
+}
+
+.compact-file-headers .codiff-file-details .codiff-button,
+.compact-file-headers .codiff-file-details .codiff-viewed-button,
+.compact-file-headers .codiff-file-details .codiff-load-button {
+  padding-inline: 8px;
+}
+
+.compact-file-headers .codiff-copy-path-button,
+.compact-file-headers .codiff-open-file-button {
+  height: 20px;
+  width: 24px;
+}
+
+.compact-file-headers .codiff-file-details > .codiff-line-count,
+.compact-file-headers .codiff-file-details > .codiff-section-badge,
+.compact-file-headers .codiff-file-details > .codiff-generated-badge {
+  flex: none;
 }
 
 .codiff-walkthrough-header-item {
@@ -2898,7 +2943,8 @@ html[data-codiff-platform='darwin'] .sidebar {
 .codiff-markdown-button,
 .codiff-button,
 .codiff-viewed-button,
-.codiff-copy-path-button {
+.codiff-copy-path-button,
+.codiff-open-file-button {
   -webkit-app-region: no-drag;
   align-items: center;
   background: transparent;
@@ -2910,7 +2956,8 @@ html[data-codiff-platform='darwin'] .sidebar {
   justify-content: center;
 }
 
-.codiff-copy-path-button {
+.codiff-copy-path-button,
+.codiff-open-file-button {
   border-radius: 15px;
   color: var(--copy-icon);
   corner-shape: squircle;
@@ -2919,25 +2966,38 @@ html[data-codiff-platform='darwin'] .sidebar {
   opacity: 0;
   padding: 0;
   transition:
-    background 120ms ease,
+    background 160ms ease,
+    box-shadow 250ms ease,
     color 120ms ease,
-    opacity 120ms ease;
+    opacity 120ms ease,
+    transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
   width: 30px;
 }
 
 .codiff-file-header:hover .codiff-copy-path-button,
+.codiff-file-header:hover .codiff-open-file-button,
 .codiff-copy-path-button:focus-visible,
+.codiff-open-file-button:focus-visible,
 .codiff-copy-path-button.copied {
   opacity: 1;
 }
 
-.codiff-copy-path-button:hover {
+.codiff-copy-path-button:hover,
+.codiff-open-file-button:hover:not(:disabled) {
   background: rgb(127 127 127 / 0.11);
   color: var(--copy-icon);
 }
 
 .codiff-copy-path-button.copied {
   color: var(--viewed);
+}
+
+.codiff-open-file-button:disabled {
+  cursor: default;
+}
+
+.codiff-open-file-button:disabled svg {
+  opacity: 0.4;
 }
 
 .codiff-button.plan-download-button {
@@ -2959,10 +3019,9 @@ html[data-codiff-platform='darwin'] .sidebar {
 .codiff-header-toggle {
   display: grid;
   gap: 10px;
-  grid-template-columns: 30px minmax(0, 1fr) auto;
+  grid-template-columns: 30px minmax(0, 1fr);
   justify-content: stretch;
   min-width: 0;
-  overflow: hidden;
   padding: 0;
   text-align: left;
 }
@@ -2987,11 +3046,14 @@ html[data-codiff-platform='darwin'] .sidebar {
   width: 30px;
 }
 
-.codiff-header-toggle:hover:not(:has(.codiff-copy-path-button:hover)) .codiff-chevron-box,
+.codiff-header-toggle:hover:not(
+    :has(.codiff-copy-path-button:hover, .codiff-open-file-button:hover)
+  )
+  .codiff-chevron-box,
 .codiff-source-description-collapse-button:hover .codiff-chevron-box,
 .codiff-file-comment-button:hover,
 .codiff-markdown-button:hover,
-.codiff-button:hover:not(:disabled),
+.codiff-button:hover:is(:not(:disabled), [data-autosaving]),
 .codiff-viewed-button:hover {
   background: rgb(127 127 127 / 0.11);
 }
@@ -3008,7 +3070,6 @@ html[data-codiff-platform='darwin'] .sidebar {
 
 .codiff-file-heading {
   min-width: 0;
-  overflow: hidden;
 }
 
 .codiff-file-path-row {
@@ -3034,6 +3095,23 @@ html[data-codiff-platform='darwin'] .sidebar {
   font: 13px/1.35 var(--font-mono);
   min-width: 0;
   transition: color 160ms ease;
+}
+
+.codiff-file-path:has(.codiff-file-name) {
+  display: flex;
+}
+
+.codiff-file-directory {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.codiff-file-name {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .codiff-file-old-path {
@@ -3096,21 +3174,10 @@ html[data-codiff-platform='darwin'] .sidebar {
   color: var(--diff-deletion);
 }
 
-.codiff-status-badge.added,
-.codiff-status-badge.untracked,
 .codiff-section-badge.unstaged {
   color: rgb(31 122 68);
 }
 
-.codiff-status-badge.deleted {
-  color: rgb(184 49 47);
-}
-
-.codiff-status-badge.conflicted {
-  color: var(--danger);
-}
-
-.codiff-status-badge.renamed,
 .codiff-section-badge.staged {
   color: rgb(143 93 24);
 }
@@ -3146,14 +3213,19 @@ html[data-codiff-platform='darwin'] .sidebar {
   opacity: 0.72;
 }
 
-.codiff-button {
+.codiff-button,
+.codiff-copy-path-button,
+.codiff-open-file-button {
   box-shadow:
     0 0 0 1px rgb(255 255 255 / 0) inset,
     0 10px 32px -24px rgb(0 0 0 / 0),
     0 8px 20px -16px rgb(0 0 0 / 0);
+  transform: scale(1);
+}
+
+.codiff-button {
   flex: none;
   gap: 7px;
-  transform: scale(1);
   transition:
     background 160ms ease,
     box-shadow 250ms ease,
@@ -3211,20 +3283,27 @@ html[data-codiff-platform='darwin'] .sidebar {
   text-decoration: underline;
 }
 
-.codiff-button:hover:not(:disabled) {
+.codiff-button:hover:is(:not(:disabled), [data-autosaving]),
+.codiff-copy-path-button:hover:not(:disabled),
+.codiff-open-file-button:hover:not(:disabled) {
   box-shadow:
     0 10px 32px -24px rgb(0 0 0 / 0.92),
     0 8px 20px -16px rgb(0 0 0 / 0.82);
   transform: scale(1.05);
 }
 
-.codiff-button:active:not(:disabled):not(:has(.review-submit-toggle:active)) {
+.codiff-button:active:not(:disabled):not(:has(.review-submit-toggle:active)),
+.codiff-copy-path-button:active:not(:disabled),
+.codiff-open-file-button:active:not(:disabled) {
   transform: scale(0.95);
 }
 
 .codiff-button:disabled {
-  color: var(--muted);
   cursor: default;
+}
+
+.codiff-button:disabled:not([data-autosaving]) {
+  color: var(--muted);
   opacity: 0.55;
 }
 
@@ -4527,4 +4606,10 @@ diffs-container .review-comment-thread {
   .review-mode-label {
     display: none;
   }
+}
+.codiff-code-edit-error {
+  padding: 8px 16px;
+  color: var(--danger);
+  background: var(--app-bg);
+  font-size: 12px;
 }

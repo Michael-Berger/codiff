@@ -4,8 +4,8 @@ const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs'
 const { homedir } = require('node:os');
 const { join } = require('node:path');
 
-const MIN_WIDTH = 880;
-const MIN_HEIGHT = 520;
+const MIN_WINDOW_WIDTH = 480;
+const MIN_WINDOW_HEIGHT = 320;
 const MIN_OVERLAP = 100;
 
 const getDefaultConfigDir = () => join(homedir(), '.codiff');
@@ -42,8 +42,8 @@ const parseWindowState = (raw) => {
     !Number.isFinite(y) ||
     !Number.isFinite(width) ||
     !Number.isFinite(height) ||
-    width < MIN_WIDTH ||
-    height < MIN_HEIGHT
+    width < MIN_WINDOW_WIDTH ||
+    height < MIN_WINDOW_HEIGHT
   ) {
     return null;
   }
@@ -117,6 +117,8 @@ const validateWindowStateOnScreen = (state, displays) => {
 };
 
 module.exports = {
+  MIN_WINDOW_HEIGHT,
+  MIN_WINDOW_WIDTH,
   readWindowState,
   validateWindowStateOnScreen,
   writeWindowState,

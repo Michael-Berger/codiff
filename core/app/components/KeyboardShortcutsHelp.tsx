@@ -27,6 +27,13 @@ const SHORTCUT_GROUPS: ReadonlyArray<ShortcutGroup> = [
   },
   {
     shortcuts: [
+      { action: 'editFile', label: 'Edit highlighted file' },
+      { action: 'doneEditing', label: 'Done editing' },
+    ],
+    title: 'Editing',
+  },
+  {
+    shortcuts: [
       { action: 'diffSearch', label: 'Find in diffs' },
       { action: 'nextSearchMatch', label: 'Next match' },
       { action: 'prevSearchMatch', label: 'Previous match' },

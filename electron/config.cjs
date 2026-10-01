@@ -240,6 +240,12 @@ const mergeConfig = (raw) => {
         typeof rawKeymap.discardComment === 'string'
           ? rawKeymap.discardComment
           : defaults.keymap.discardComment,
+      doneEditing:
+        typeof rawKeymap.doneEditing === 'string'
+          ? rawKeymap.doneEditing
+          : defaults.keymap.doneEditing,
+      editFile:
+        typeof rawKeymap.editFile === 'string' ? rawKeymap.editFile : defaults.keymap.editFile,
       fileFilter:
         typeof rawKeymap.fileFilter === 'string'
           ? rawKeymap.fileFilter

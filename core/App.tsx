@@ -37,6 +37,7 @@ import { useAppCommands } from './app/hooks/useAppCommands.ts';
 import { useAppKeyboardShortcuts } from './app/hooks/useAppKeyboardShortcuts.ts';
 import { useAppReviewComments } from './app/hooks/useAppReviewComments.ts';
 import { useAppWalkthrough } from './app/hooks/useAppWalkthrough.ts';
+import { createCodeEditingStore, useUnsavedCodeEditsGuard } from './app/hooks/useCodeEditing.ts';
 import { useDiffSearch } from './app/hooks/useDiffSearch.ts';
 import {
   getCodeFontLineHeight,
@@ -202,6 +203,8 @@ export default function App() {
   const [isWindowFullScreen, setIsWindowFullScreen] = useState(false);
   const [pendingSource, setPendingSource] = useState<ReviewSource | null>(null);
   const [planDocument, setPlanDocument] = useState<CodiffMarkdownDocument | null>(null);
+  const [codeEditingStore] = useState(createCodeEditingStore);
+  useUnsavedCodeEditsGuard(codeEditingStore);
   const [planLoadError, setPlanLoadError] = useState<string | null>(null);
   const [loadingSectionIds, setLoadingSectionIds] = useState<ReadonlySet<string>>(() => new Set());
   const [openReviewSourceKind, setOpenReviewSourceKind] = useState<OpenReviewSourceKind | null>(
@@ -499,7 +502,7 @@ export default function App() {
   );
 
   const refreshMarkdownFile = useCallback(
-    (file: ChangedFile, _section: DiffSection) => {
+    (file: ChangedFile, section: DiffSection) => {
       const refresh = async () => {
         const currentState = stateRef.current;
         if (
@@ -515,9 +518,38 @@ export default function App() {
 
         try {
           const nextState = await window.codiff.getRepositoryState(currentState.source);
+          const refreshedFile = nextState.files.find((candidate) => candidate.path === file.path);
+          const refreshedSection = refreshedFile?.sections.find(
+            (candidate) => candidate.kind === section.kind,
+          );
+          // Keep the editor's complete context until the replacement has it too.
+          // Publishing a patch first drops expanded rows and trailing context.
+          const loadedSection =
+            refreshedSection &&
+            (isPatchOnlyDiffSection(refreshedSection) ||
+              shouldLoadDiffSectionContents(refreshedSection))
+              ? await window.codiff.getDiffSectionContent({
+                  force: true,
+                  kind: refreshedSection.kind,
+                  path: file.path,
+                  showWhitespace: preferencesRef.current.showWhitespace,
+                  source: currentState.source,
+                })
+              : undefined;
           const orderedState = {
             ...nextState,
-            files: sortFiles(nextState.files),
+            files: sortFiles(
+              nextState.files.map((candidate) =>
+                candidate === refreshedFile && loadedSection
+                  ? {
+                      ...candidate,
+                      sections: candidate.sections.map((candidateSection) =>
+                        candidateSection === refreshedSection ? loadedSection : candidateSection,
+                      ),
+                    }
+                  : candidate,
+              ),
+            ),
           };
           if (
             sourceRequestRef.current !== sourceRequest ||
@@ -1713,6 +1745,7 @@ export default function App() {
     activeSearchMatch: activeDiffSearchMatch,
     agentId: activeAgentBackend,
     agentLabel,
+    codeEditingStore,
     codeQualityFindings: state.codeQualityFindings,
     collapsed,
     comments: visibleReviewComments,

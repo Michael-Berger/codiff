@@ -2259,7 +2259,7 @@ test('Enter on a focused review control is not converted into a hunk comment', a
   await act(async () => {
     render(1);
   });
-  const openButton = container.querySelector<HTMLButtonElement>('.codiff-button');
+  const openButton = container.querySelector<HTMLButtonElement>('.codiff-open-file-button');
   if (!openButton) {
     throw new Error('Expected the open file button.');
   }

@@ -83,6 +83,8 @@ const { createEditorOpener } = require('./main/editor.cjs');
 const { createDefinitionSearchCoordinator } = require('./definition-search.cjs');
 const { createTerminalHelper } = require('./main/terminal-helper.cjs');
 const {
+  MIN_WINDOW_HEIGHT,
+  MIN_WINDOW_WIDTH,
   readWindowState,
   validateWindowStateOnScreen,
   writeWindowState,
@@ -108,6 +110,7 @@ const {
   watchMarkdownDocument,
   writeMarkdownDocument,
 } = require('./markdown-document.cjs');
+const { readRepositoryFile, writeRepositoryFile } = require('./repository-file.cjs');
 const {
   createRepositoryWatcherCoordinator,
   readRepositoryWatcherSnapshot,
@@ -888,8 +891,8 @@ const createWindow = (
         ? '#141414'
         : '#ffffff',
     height: validatedState?.height ?? Math.max(720, Math.floor(height * 0.86)),
-    minHeight: 520,
-    minWidth: 880,
+    minHeight: MIN_WINDOW_HEIGHT,
+    minWidth: MIN_WINDOW_WIDTH,
     show: false,
     titleBarStyle: useMacVibrancy ? 'hiddenInset' : 'default',
     ...(useMacVibrancy
@@ -970,6 +973,20 @@ const createWindow = (
   window.once('ready-to-show', () => window.show());
   let allowClose = false;
   let copyingPendingCommentsBeforeClose = false;
+  window.webContents.on('will-prevent-unload', (event) => {
+    const response = dialog.showMessageBoxSync(window, {
+      buttons: ['Keep Editing', 'Close Anyway'],
+      cancelId: 0,
+      defaultId: 0,
+      message: 'Close before saving finishes?',
+      detail: 'Some edits have not reached disk yet. Already auto-saved edits will be kept.',
+      type: 'warning',
+    });
+    // Electron uses preventDefault here to allow the otherwise blocked unload.
+    if (response === 1) {
+      event.preventDefault();
+    }
+  });
   window.on('close', (event) => {
     try {
       const normalBounds = window.getNormalBounds();
@@ -1471,6 +1488,27 @@ ipcMain.handle('codiff:getMarkdownDocument', async (event, request) => {
   }
   ensureMarkdownDocumentWatcher(event.sender, request);
   return document;
+});
+
+ipcMain.handle('codiff:getRepositoryFile', (event, path) =>
+  readRepositoryFile(getWindowRepositoryRoot(event.sender.id), path),
+);
+
+ipcMain.handle('codiff:saveRepositoryFile', async (event, request) => {
+  const root = getWindowRepositoryRoot(event.sender.id);
+  const current = await readRepositoryFile(root, request.path);
+  const selfWrite = beginRepositorySelfWrite(event.sender.id, current.path);
+  try {
+    const result = await writeRepositoryFile(root, request);
+    finishRepositorySelfWrite(
+      selfWrite,
+      result.status === 'saved' ? result.document.version : null,
+    );
+    return result;
+  } catch (error) {
+    finishRepositorySelfWrite(selfWrite, null);
+    throw error;
+  }
 });
 
 ipcMain.handle('codiff:saveMarkdownDocument', async (event, request) => {

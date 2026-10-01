@@ -287,6 +287,22 @@ export type SaveMarkdownDocumentResult =
       status: 'saved';
     };
 
+export type RepositoryFileDocument = {
+  content: string;
+  path: string;
+  root: string;
+  version: string;
+};
+
+export type SaveRepositoryFileRequest = Omit<RepositoryFileDocument, 'version'> & {
+  baseVersion: string;
+};
+
+export type SaveRepositoryFileResult = {
+  document: RepositoryFileDocument;
+  status: 'conflict' | 'saved';
+};
+
 export type PlanCommentAuthor = {
   avatarUrl?: string;
   email?: string;

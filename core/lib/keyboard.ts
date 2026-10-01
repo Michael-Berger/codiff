@@ -1,12 +1,16 @@
 type NativeInputEventTarget = EventTarget & {
   closest?: (selector: string) => Element | null;
   isContentEditable?: boolean;
+  shadowRoot?: ShadowRoot | null;
 };
 
-export const isNativeInputTarget = (target: EventTarget | null) => {
+export const isNativeInputTarget = (target: EventTarget | null): boolean => {
   const candidate = target as NativeInputEventTarget | null;
   return (
-    candidate?.closest?.('input, select, textarea') != null || candidate?.isContentEditable === true
+    candidate?.closest?.('input, select, textarea, [contenteditable="true"]') != null ||
+    candidate?.isContentEditable === true ||
+    (candidate?.shadowRoot?.activeElement != null &&
+      isNativeInputTarget(candidate.shadowRoot.activeElement))
   );
 };
 

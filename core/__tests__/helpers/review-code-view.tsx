@@ -35,6 +35,7 @@ vi.mock('@pierre/diffs/react', async () => {
     CodeView: React.forwardRef(function MockCodeView(
       props: {
         className?: string;
+        containerRef?: React.Ref<HTMLDivElement>;
         items: Array<CodeViewItem<unknown>>;
         onScroll?: (scrollTop: number, viewer: unknown) => void;
         options?: {
@@ -51,6 +52,7 @@ vi.mock('@pierre/diffs/react', async () => {
         ) => React.ReactNode;
         renderCodeViewHeader?: () => React.ReactNode;
         renderCustomHeader?: (item: CodeViewItem<unknown>) => React.ReactNode;
+        style?: React.CSSProperties;
       },
       ref: React.ForwardedRef<unknown>,
     ) {
@@ -103,6 +105,7 @@ vi.mock('@pierre/diffs/react', async () => {
         () => ({
           clearSelectedLines: () => {},
           getInstance: () => viewer,
+          getItem: (id: string) => itemsRef.current.find((item) => item.id === id),
           scrollTo: (target: { behavior?: string; id: string; offset?: number }) => {
             codeViewMock.scrollTo(target);
             const attempts = (scrollAttemptByIdRef.current.get(target.id) ?? 0) + 1;
@@ -120,7 +123,7 @@ vi.mock('@pierre/diffs/react', async () => {
 
       return React.createElement(
         'div',
-        { className: props.className },
+        { className: props.className, ref: props.containerRef, style: props.style },
         props.renderCodeViewHeader
           ? React.createElement(
               'div',
@@ -151,6 +154,8 @@ vi.mock('@pierre/diffs/react', async () => {
         }),
       );
     }),
+    EditProvider: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
     WorkerPoolContextProvider: ({ children }: { children: React.ReactNode }) =>
       React.createElement(React.Fragment, null, children),
   };
