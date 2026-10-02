@@ -21,6 +21,7 @@ export default function SignInButton({
           provider: 'github',
         })
       }
+      pendingPlaceholder={children}
       size={size}
       variant={variant}
     >
