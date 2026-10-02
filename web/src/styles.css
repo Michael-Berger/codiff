@@ -594,8 +594,8 @@ body {
 }
 
 .codiff-web-header-spacer {
-  height: 34px;
-  width: 132px;
+  display: flex;
+  visibility: hidden;
 }
 
 .codiff-web-user-avatar {
@@ -768,6 +768,7 @@ body {
 .codiff-web-guide-cta {
   display: flex;
   margin-top: 28px;
+  min-height: 36px;
 }
 
 .codiff-web-hero-icon {

@@ -70,7 +70,9 @@ export default function Header() {
           <span>Codiff</span>
         </a>
         {isPending ? (
-          <div className="codiff-web-header-spacer" />
+          <div aria-hidden className="codiff-web-header-spacer">
+            <SignInButton />
+          </div>
         ) : session?.user ? (
           <Menu.Root
             onOpenChange={(open) => {

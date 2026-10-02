@@ -33,13 +33,13 @@ export default function HomeGuide() {
           <img alt="" className="codiff-web-hero-icon" draggable={false} src={icon} />
           <h1>Codiff</h1>
           <p>Effective code reviews locally and on the web</p>
-          {!isPending && !session?.user ? (
-            <div className="codiff-web-guide-cta">
+          <div className="codiff-web-guide-cta">
+            {!isPending && !session?.user ? (
               <SignInButton size="lg" variant="default">
                 Continue with GitHub
               </SignInButton>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </section>
         <aside aria-label="Codiff preview" className="codiff-web-guide-preview">
           <picture>
