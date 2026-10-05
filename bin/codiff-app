@@ -339,9 +339,18 @@ is_git_commit_ref() {
 # `base...head` (merge-base) or `base..head` (direct), matching bin/arguments.js.
 # Both ends must resolve to commits so a stray dotted argument isn't misread.
 is_git_range_ref() {
-  printf '%s' "$2" | grep -Eq '^[^.][^[:space:]]*\.\.\.?[^.][^[:space:]]*$' &&
-    is_git_commit_ref "$1" "${2%%..*}" &&
-    is_git_commit_ref "$1" "${2##*..}"
+  printf '%s' "$2" | grep -Eq '^[^.][^[:space:]]*\.\.\.?[^.][^[:space:]]*$' || return 1
+  range_base="${2%%..*}"
+  range_head="${2#*..}"
+  case "$range_head" in
+    .*) range_head="${range_head#.}" ;;
+  esac
+  # Strip only the first separator so extra dots cannot hide invalid endpoints.
+  case "$range_head" in
+    ''|.*) return 1 ;;
+  esac
+  is_git_commit_ref "$1" "$range_base" &&
+    is_git_commit_ref "$1" "$range_head"
 }
 
 is_git_repository() {
