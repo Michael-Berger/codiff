@@ -24,6 +24,7 @@ const {
     model: unknown,
     context?: unknown,
     customPrompt?: string,
+    reasoningEffort?: string,
   ) => string;
   narrativeWalkthroughSchema: {
     properties: Record<string, any>;
@@ -48,7 +49,12 @@ const {
     customPrompt?: string,
     previousWalkthrough?: unknown,
   ) => Promise<any>;
-  resolveNarrativeWalkthroughModel: (state: any, agent: any, model: unknown) => string;
+  resolveNarrativeWalkthroughModel: (
+    state: any,
+    agent: any,
+    model: unknown,
+    reasoningEffort?: string,
+  ) => string;
 };
 
 const addedPatch = (count: number) =>
@@ -441,7 +447,7 @@ test.each([
   },
 );
 
-test('uses GPT-5.5 for large walkthroughs only when Codex is on the default model', () => {
+test('uses GPT-5.5 for large walkthroughs only with automatic effort on the default model', () => {
   const createState = (hunkCount: number) => ({
     branch: 'main',
     files: [
@@ -477,6 +483,9 @@ test('uses GPT-5.5 for large walkthroughs only when Codex is on the default mode
   expect(resolveNarrativeWalkthroughModel(createState(100), codexAgent, 'gpt-5.6-terra')).toBe(
     'gpt-5.5',
   );
+  expect(
+    resolveNarrativeWalkthroughModel(createState(100), codexAgent, 'gpt-5.6-terra', 'max'),
+  ).toBe('gpt-5.6-terra');
   expect(resolveNarrativeWalkthroughModel(createState(100), codexAgent, 'gpt-5.6-sol')).toBe(
     'gpt-5.6-sol',
   );
@@ -644,6 +653,25 @@ test('builds cache keys from semantic generation inputs', () => {
       summary: 'Prior discussion',
     }),
   ).not.toBe(key);
+  const codex = { ...agent, id: 'codex', label: 'Codex' };
+  const automatic = getNarrativeWalkthroughCacheKey(state, codex, 'gpt-6.1-sol', null);
+  const low = getNarrativeWalkthroughCacheKey(state, codex, 'gpt-6.1-sol', null, undefined, 'low');
+  const high = getNarrativeWalkthroughCacheKey(
+    state,
+    codex,
+    'gpt-6.1-sol',
+    null,
+    undefined,
+    'high',
+  );
+  expect(high).not.toBe(low);
+  expect(high).not.toBe(automatic);
+  expect(getNarrativeWalkthroughCacheKey(state, codex, 'gpt-6.1-sol', null, undefined, '')).toBe(
+    automatic,
+  );
+  expect(
+    getNarrativeWalkthroughCacheKey(state, agent, 'claude-sonnet', null, undefined, 'high'),
+  ).toBe(key);
 });
 
 test('omits blank custom walkthrough prompt guidance', () => {

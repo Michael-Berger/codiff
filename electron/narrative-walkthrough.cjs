@@ -739,16 +739,18 @@ const getWalkthroughSize = (state) => ({
 
 /**
  * Use the compatibility model for large default-Codex walkthroughs. Explicit
- * model selections and non-Codex backends keep their configured model.
+ * model or effort selections and non-Codex backends keep their configured model.
  *
  * @param {RepositoryState} state
  * @param {Agent} agent
  * @param {unknown} model
+ * @param {string} [reasoningEffort]
  */
-const resolveNarrativeWalkthroughModel = (state, agent, model) => {
+const resolveNarrativeWalkthroughModel = (state, agent, model, reasoningEffort) => {
   const normalizedModel = agent.normalizeModel(model);
   return agent.id === 'codex' &&
     normalizedModel === agent.defaultModel &&
+    !reasoningEffort?.trim() &&
     getWalkthroughSize(state).hunkCount >= LARGE_WALKTHROUGH_HUNK_THRESHOLD
     ? agent.fallbackModel
     : normalizedModel;
@@ -864,8 +866,16 @@ const buildNarrativeWalkthroughPrompt = (
  * @param {unknown} model
  * @param {WalkthroughContext | null | undefined} context
  * @param {unknown} customPrompt
+ * @param {string} [reasoningEffort]
  */
-const getNarrativeWalkthroughCacheKey = (state, agent, model, context, customPrompt) => {
+const getNarrativeWalkthroughCacheKey = (
+  state,
+  agent,
+  model,
+  context,
+  customPrompt,
+  reasoningEffort,
+) => {
   const prompt = buildNarrativeWalkthroughPrompt(state, context, agent.label, customPrompt);
   return createHash('sha256')
     .update(
@@ -883,6 +893,9 @@ const getNarrativeWalkthroughCacheKey = (state, agent, model, context, customPro
           })),
         })),
         model: agent.normalizeModel(model),
+        ...(agent.id === 'codex' && reasoningEffort?.trim()
+          ? { reasoningEffort: reasoningEffort.trim() }
+          : {}),
         prompt,
         responseSchema: narrativeWalkthroughResponseSchema,
         version: WALKTHROUGH_CACHE_KEY_VERSION,
