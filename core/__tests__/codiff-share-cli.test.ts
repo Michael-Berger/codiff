@@ -332,89 +332,105 @@ test('headless walkthrough share resolves GitHub PR branch targets', async () =>
   expect(await readFile(ghArgsPath, 'utf8')).toContain('owner:merged-branch\n');
 });
 
-test('codiff --share falls back to HEAD for a clean working tree and prints only its URL', async () => {
-  await using directory = await createTemporaryDirectory('codiff-generate-share-');
-  const repositoryPath = join(directory.path, 'repo');
-  const fakeCodexPath = join(directory.path, 'codex');
-  let uploadedBody: UploadedBody | null = null;
+test.each(['', 'high', 'ultra'])(
+  'codiff --share uses configured effort %j, falls back to HEAD for a clean working tree, and prints only its URL',
+  async (reasoningEffort) => {
+    await using directory = await createTemporaryDirectory('codiff-generate-share-');
+    const repositoryPath = join(directory.path, 'repo');
+    const fakeCodexPath = join(directory.path, 'codex');
+    const codexArgsPath = join(directory.path, 'codex-args.txt');
+    const homePath = join(directory.path, 'home');
+    await mkdir(join(homePath, '.codiff'), { recursive: true });
+    await writeFile(
+      join(homePath, '.codiff', 'codiff.jsonc'),
+      JSON.stringify({
+        settings: {
+          agentBackend: 'codex',
+          openAIModel: 'gpt-6.1-sol',
+          openAIReasoningEffort: reasoningEffort,
+        },
+      }),
+    );
+    let uploadedBody: UploadedBody | null = null;
 
-  const server = createServer((request, response) => {
-    const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
-    if (request.method === 'POST' && request.url === '/api/upload-intents') {
-      response.setHeader('content-type', 'application/json');
-      response.end(
-        JSON.stringify({
-          claimUrl: `${origin}/connect/CODE?secret=secret`,
-          code: 'CODE',
-          pollUrl: `${origin}/api/upload-intents/CODE?secret=secret`,
-          secret: 'secret',
-          status: 'claimed',
-        }),
-      );
-      return;
-    }
-
-    if (request.method === 'POST' && request.url === '/api/uploads') {
-      const chunks: Array<Buffer> = [];
-      request.on('data', (chunk) => chunks.push(chunk));
-      request.on('end', () => {
-        uploadedBody = JSON.parse(Buffer.concat(chunks).toString('utf8')) as UploadedBody;
+    const server = createServer((request, response) => {
+      const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+      if (request.method === 'POST' && request.url === '/api/upload-intents') {
         response.setHeader('content-type', 'application/json');
         response.end(
           JSON.stringify({
-            status: 'uploaded',
-            url: `${origin}/w/generated-walkthrough`,
+            claimUrl: `${origin}/connect/CODE?secret=secret`,
+            code: 'CODE',
+            pollUrl: `${origin}/api/upload-intents/CODE?secret=secret`,
+            secret: 'secret',
+            status: 'claimed',
           }),
         );
-      });
-      return;
-    }
+        return;
+      }
 
-    response.statusCode = 404;
-    response.end();
-  });
+      if (request.method === 'POST' && request.url === '/api/uploads') {
+        const chunks: Array<Buffer> = [];
+        request.on('data', (chunk) => chunks.push(chunk));
+        request.on('end', () => {
+          uploadedBody = JSON.parse(Buffer.concat(chunks).toString('utf8')) as UploadedBody;
+          response.setHeader('content-type', 'application/json');
+          response.end(
+            JSON.stringify({
+              status: 'uploaded',
+              url: `${origin}/w/generated-walkthrough`,
+            }),
+          );
+        });
+        return;
+      }
 
-  await mkdir(repositoryPath);
-  await git(repositoryPath, ['init']);
-  await git(repositoryPath, ['config', 'user.email', 'author@cloudflare.com']);
-  await git(repositoryPath, ['config', 'user.name', 'Cloudflare Author']);
-  await writeFile(join(repositoryPath, 'example.txt'), 'before\n');
-  await git(repositoryPath, ['add', 'example.txt']);
-  await git(repositoryPath, ['commit', '-m', 'Initial commit']);
-  await writeFile(join(repositoryPath, 'example.txt'), 'after\n');
-  await git(repositoryPath, ['add', 'example.txt']);
-  await git(repositoryPath, ['commit', '-m', 'Update example']);
-  const { stdout: headOutput } = await git(repositoryPath, ['rev-parse', 'HEAD']);
-  const head = headOutput.trim();
+      response.statusCode = 404;
+      response.end();
+    });
 
-  const state = await readRepositoryState(repositoryPath, { ref: 'HEAD', type: 'commit' });
-  const file = state.files[0];
-  const hunk = getSectionWalkthroughHunks(file, file.sections[0])[0];
-  const generatedWalkthrough = JSON.stringify({
-    chapters: [
-      {
-        blurb: 'Review the committed behavior change.',
-        icon: 'wrench',
-        id: 'change',
-        stops: [
-          {
-            hunkIds: [hunk.id],
-            id: 's1',
-            importance: 'normal',
-            prose: 'The committed file now contains the updated value.',
-          },
-        ],
-        title: 'Change',
-      },
-    ],
-    focus: 'Update the example value.',
-    kind: 'narrative',
-    title: 'Example update',
-    version: 4,
-  });
-  await writeFile(
-    fakeCodexPath,
-    `#!/bin/sh
+    await mkdir(repositoryPath);
+    await git(repositoryPath, ['init']);
+    await git(repositoryPath, ['config', 'user.email', 'author@cloudflare.com']);
+    await git(repositoryPath, ['config', 'user.name', 'Cloudflare Author']);
+    await writeFile(join(repositoryPath, 'example.txt'), 'before\n');
+    await git(repositoryPath, ['add', 'example.txt']);
+    await git(repositoryPath, ['commit', '-m', 'Initial commit']);
+    await writeFile(join(repositoryPath, 'example.txt'), 'after\n');
+    await git(repositoryPath, ['add', 'example.txt']);
+    await git(repositoryPath, ['commit', '-m', 'Update example']);
+    const { stdout: headOutput } = await git(repositoryPath, ['rev-parse', 'HEAD']);
+    const head = headOutput.trim();
+
+    const state = await readRepositoryState(repositoryPath, { ref: 'HEAD', type: 'commit' });
+    const file = state.files[0];
+    const hunk = getSectionWalkthroughHunks(file, file.sections[0])[0];
+    const generatedWalkthrough = JSON.stringify({
+      chapters: [
+        {
+          blurb: 'Review the committed behavior change.',
+          icon: 'wrench',
+          id: 'change',
+          stops: [
+            {
+              hunkIds: [hunk.id],
+              id: 's1',
+              importance: 'normal',
+              prose: 'The committed file now contains the updated value.',
+            },
+          ],
+          title: 'Change',
+        },
+      ],
+      focus: 'Update the example value.',
+      kind: 'narrative',
+      title: 'Example update',
+      version: 4,
+    });
+    await writeFile(
+      fakeCodexPath,
+      `#!/bin/sh
+printf '%s\\n' "$@" > "$CODEX_ARGS_FILE"
 while [ "$#" -gt 0 ]; do
   if [ "$1" = "--output-last-message" ]; then
     shift
@@ -427,36 +443,48 @@ EOF
 done
 exit 1
 `,
-  );
-  await chmod(fakeCodexPath, 0o755);
+    );
+    await chmod(fakeCodexPath, 0o755);
 
-  await using _server = await bindDisposableHttpServer(server);
-  const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
-  const { stderr, stdout } = await execFileAsync(
-    process.execPath,
-    [resolve('bin/codiff.js'), '--share', repositoryPath],
-    {
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        CODIFF_CODEX_PATH: fakeCodexPath,
-        CODIFF_SHARE_SERVER_URL: origin,
-        HOME: join(directory.path, 'home'),
+    await using _server = await bindDisposableHttpServer(server);
+    const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    const { stderr, stdout } = await execFileAsync(
+      process.execPath,
+      [resolve('bin/codiff.js'), '--share', repositoryPath],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CODEX_ARGS_FILE: codexArgsPath,
+          CODIFF_CODEX_PATH: fakeCodexPath,
+          CODIFF_SHARE_SERVER_URL: origin,
+          HOME: homePath,
+        },
       },
-    },
-  );
+    );
 
-  const body = uploadedBody as unknown as UploadedBody;
-  expect(stderr).toBe('');
-  expect(stdout).toBe(`${origin}/w/generated-walkthrough\n`);
-  expect(body.snapshot.repository).toMatchObject({
-    root: await realpath(repositoryPath),
-    source: { ref: head, type: 'commit' },
-    title: 'Update example',
-  });
-  expect(body.snapshot.walkthrough).toMatchObject({
-    agent: 'codex',
-    title: 'Example update',
-    version: 4,
-  });
-}, 15_000);
+    const body = uploadedBody as unknown as UploadedBody;
+    const codexArgs = (await readFile(codexArgsPath, 'utf8')).trimEnd().split('\n');
+    expect(codexArgs[codexArgs.indexOf('-m') + 1]).toBe('gpt-6.1-sol');
+    if (reasoningEffort) {
+      expect(codexArgs[codexArgs.indexOf('-c') + 1]).toBe(
+        `model_reasoning_effort="${reasoningEffort}"`,
+      );
+    } else {
+      expect(codexArgs).not.toContain('-c');
+    }
+    expect(stderr).toBe('');
+    expect(stdout).toBe(`${origin}/w/generated-walkthrough\n`);
+    expect(body.snapshot.repository).toMatchObject({
+      root: await realpath(repositoryPath),
+      source: { ref: head, type: 'commit' },
+      title: 'Update example',
+    });
+    expect(body.snapshot.walkthrough).toMatchObject({
+      agent: 'codex',
+      title: 'Example update',
+      version: 4,
+    });
+  },
+  15_000,
+);

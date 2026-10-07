@@ -254,6 +254,9 @@ const generateAndShareWalkthrough = async ({
     {
       fallbackModel: agent.fallbackModel,
       model: config.settings[agent.modelSettingKey],
+      ...(agent.id === 'codex'
+        ? { reasoningEffort: config.settings.openAIReasoningEffort || undefined }
+        : {}),
       onModelFallback: async (fallbackModel) => {
         config.settings[agent.modelSettingKey] = fallbackModel;
         writeConfig(config);
