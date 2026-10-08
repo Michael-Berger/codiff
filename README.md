@@ -103,8 +103,10 @@ The bundled `codiff` skill for Claude Code sets the target for you:
 
 ### Install the fork
 
-Fork builds are not published, so you build it yourself. You need Node.js and pnpm
-(`corepack enable pnpm`), plus `jq` if you use Herdr. If you installed upstream Codiff with
+Fork builds are not published, so you build it yourself. You need Node.js 23 or newer, pnpm 12
+(`corepack enable pnpm`), the Xcode Command Line Tools (`xcode-select --install`) to compile native
+modules, and `jq` if you use Herdr. The script checks these first and prints a fix for each one
+missing; `contrib/install-fork --check` runs only the checks. If you installed upstream Codiff with
 Homebrew, run `brew uninstall --cask codiff` first; your settings in `~/.codiff` are kept.
 
 ```bash
@@ -118,6 +120,9 @@ The script builds `Codiff.app` into `/Applications` (macOS on Apple Silicon), li
 Claude Code skill, and sets `commentCommand` unless you already have one. Pass `--no-app` to run
 Codiff straight from the checkout instead. Other agents' skills install from the app's Install
 Skill menu.
+
+If a step fails, the script prints the path of a log with its full output
+(`$TMPDIR/codiff-install-fork.log`); send that along when asking for help.
 
 To check that the fork is the Codiff you are running, look for `-fork` in the version:
 `codiff --version` prints something like `codiff v1.16.0-fork`, and Codiff > About Codiff shows
