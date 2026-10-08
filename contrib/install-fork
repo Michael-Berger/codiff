@@ -112,18 +112,30 @@ const commentCommand =
   'codiff-comment --target {target} --file {file} --path {path} --line {line} --end {endLine} --snippet {snippet} --send';
 const config = readConfig();
 const configPath = getConfigPath();
+let next = config;
 if (config.settings.commentCommand === commentCommand) {
   console.log(`${configPath} already sends comments with codiff-comment.`);
 } else if (config.settings.commentCommand) {
   console.log(`Kept your commentCommand in ${configPath}. To use the fork's routing, set it to:`);
   console.log(`  ${commentCommand}`);
 } else {
+  next = { ...next, settings: { ...next.settings, commentCommand } };
+  console.log(`Set commentCommand in ${configPath}.`);
+}
+// Upstream writes its defaults into the file, so a config still holding them gets the fork's.
+if (config.keymap.askAgent === 'Mod+Alt+Enter' && config.keymap.submitComment === 'Mod+Enter') {
+  next = {
+    ...next,
+    keymap: { ...next.keymap, askAgent: 'Mod+Enter', submitComment: 'Mod+Alt+Enter' },
+  };
+  console.log('Swapped the comment shortcuts: Mod+Enter asks, Mod+Alt+Enter comments.');
+}
+if (next !== config) {
   if (existsSync(configPath)) {
     copyFileSync(configPath, `${configPath}.bak`);
     console.log(`Backed up ${configPath} to ${configPath}.bak.`);
   }
-  writeConfig({ ...config, settings: { ...config.settings, commentCommand } });
-  console.log(`Set commentCommand in ${configPath}.`);
+  writeConfig(next);
 }
 NODE
 
