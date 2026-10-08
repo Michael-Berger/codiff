@@ -17,8 +17,9 @@
 # --text takes every remaining argument, so it must come last and needs no quoting.
 # --text omitted reads the comment from stdin.
 # --agent matches the herdr agent name (the pane's terminal title, e.g. "improvements").
-# --pane is used when that pane still hosts an agent in the file's worktree; a closed or reused
-# pane falls back to the normal resolution (worktree, then --agent, then focus).
+# --pane is used whenever that pane still hosts an agent, even in another worktree: a pull
+# request's files can live in a different checkout. A closed pane falls back to the normal
+# resolution (worktree, then --agent, then focus).
 # Exit codes: 0 sent, 1 usage/resolution error, 2 herdr call failed.
 
 set -euo pipefail
@@ -95,15 +96,14 @@ resolve_pane() {
   printf '%s' "$(printf '%s\n' "$rows" | head -1 | cut -f1)"
 }
 
-pane_in_worktree() {
-  local agents cwd
+pane_hosts_agent() {
+  local agents
   agents="$("$HERDR_BIN" agent list 2>/dev/null)" || return 1
-  cwd="$(printf '%s' "$agents" | "$JQ_BIN" -r --arg p "$1" \
-    '.result.agents[] | select(.pane_id == $p) | .cwd // ""' | head -1)"
-  [[ -n "$cwd" ]] && [[ "$("$GIT_BIN" -C "$cwd" rev-parse --show-toplevel 2>/dev/null)" == "$repo_root" ]]
+  printf '%s' "$agents" | "$JQ_BIN" -e --arg p "$1" \
+    'any(.result.agents[]; .pane_id == $p)' >/dev/null
 }
 
-if [[ -n "$pane" ]] && ! pane_in_worktree "$pane"; then
+if [[ -n "$pane" ]] && ! pane_hosts_agent "$pane"; then
   pane=""
 fi
 [[ -n "$pane" ]] || pane="$(resolve_pane)"
