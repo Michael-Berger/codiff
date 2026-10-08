@@ -1289,6 +1289,10 @@ const focusOrCreateWindow = (
         matchingWebContentsId,
         withRelaunchAgentOptions(windowLaunchOptions.get(matchingWebContentsId), launchOptions),
       );
+      matchingWindow.webContents.send(
+        'codiff:launchOptionsChanged',
+        windowLaunchOptions.get(matchingWebContentsId),
+      );
     }
     if (windowLaunchOptions.get(matchingWebContentsId)?.agentTarget !== previousAgentTarget) {
       closeCommentQueue(previousAgentTarget);

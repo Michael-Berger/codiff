@@ -1386,6 +1386,8 @@ export default function App() {
   // process instead of reloading the window.
   useEffect(() => window.codiff.onRefreshRequest(refreshRepository), [refreshRepository]);
 
+  useEffect(() => window.codiff.onLaunchOptionsChanged(setLaunchOptions), []);
+
   useEffect(() => {
     const writeCurrentReloadSelection = () => {
       writeReloadSelection(
@@ -1774,7 +1776,7 @@ export default function App() {
       />
     ) : undefined,
     supportsReviewCommentActions: isPullRequest,
-    supportsSendComment: !isPullRequest && Boolean(preferences.commentCommand),
+    supportsSendComment: Boolean(preferences.commentCommand && launchOptions.agentTarget),
     theme: preferences.theme,
     viewed,
     wordWrap,

@@ -232,6 +232,7 @@ const createCodiffMock = (overrides: Partial<Window['codiff']> = {}): Window['co
   onCopyPendingCommentsRequest: vi.fn(() => () => {}),
   onFindInDiffs: vi.fn(() => () => {}),
   onKeyboardLayoutChanged: vi.fn(() => () => {}),
+  onLaunchOptionsChanged: vi.fn(() => () => {}),
   onMarkdownDocumentChanged: vi.fn(() => () => {}),
   onOpenReviewSource: vi.fn(() => () => {}),
   onPlanCloseRequested: vi.fn(() => () => {}),

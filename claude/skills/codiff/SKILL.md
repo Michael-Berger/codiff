@@ -134,8 +134,8 @@ approval document.
    authoring a walkthrough, omit `--file`, for example
    `node scripts/open-codiff.mjs --commit <sha> /path/to/repository` (or `--branch <ref>`, or only
    the repository for the working tree). The other arguments are forwarded to Codiff verbatim,
-   and comments reach this pane the same way, except in a pull request review, where they go to
-   the pull request. Do not summarize the diff back to the user. In both walkthrough and diff
+   and comments the user sends with Ask reach this pane the same way, including in a pull
+   request review. Do not summarize the diff back to the user. In both walkthrough and diff
    mode, without `HERDR_PANE_ID`, the launcher instead creates a comment queue and prints
    `CODIFF_COMMENT_QUEUE {"monitor": "<command>", "queue": "<path>"}`. Start the Monitor tool with
    that `monitor` command, description "Codiff review comments", and `timeout_ms` 1800000. Each

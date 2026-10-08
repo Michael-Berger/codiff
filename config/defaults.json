@@ -24,7 +24,7 @@
     "wordWrap": false
   },
   "keymap": {
-    "askAgent": "Mod+Alt+Enter",
+    "askAgent": "Mod+Enter",
     "closeSearch": "Escape",
     "commandBar": "Mod+k",
     "diffSearch": "Mod+f",
@@ -38,7 +38,7 @@
     "prevHunk": ["Ctrl+ArrowUp", "k"],
     "prevSearchMatch": "Shift+Enter",
     "shortcutsHelp": "Shift+?",
-    "submitComment": "Mod+Enter",
+    "submitComment": "Mod+Alt+Enter",
     "toggleSidebar": "Mod+Shift+b",
     "toggleWordWrap": "Alt+z"
   }

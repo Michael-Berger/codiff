@@ -223,6 +223,9 @@ export const matchesShortcut = (
   (canFallBackToPhysicalKey(event, keymap) &&
     matchesBinding(event, keymap[action], matchesPhysicalKey));
 
+export const matchesSingleActionShortcut = (event: ShortcutEvent, keymap: CodiffKeymap): boolean =>
+  matchesShortcut(event, keymap, 'submitComment') || matchesShortcut(event, keymap, 'askAgent');
+
 export const getShortcutLabel = (keymap: CodiffKeymap, action: keyof CodiffKeymap): string => {
   // Show the primary combo when an action has alias bindings.
   const combo = getBindingCombos(keymap[action])[0] ?? '';

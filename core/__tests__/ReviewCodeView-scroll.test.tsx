@@ -1943,7 +1943,7 @@ test('pointer-driven comment blurs preserve each newly focused editor across rep
   expect(onUpdateComment).toHaveBeenCalledOnce();
 });
 
-test('local review comments are added with Mod+Enter instead of asking the agent', async () => {
+test('local review comments are added with Mod+Alt+Enter instead of asking the agent', async () => {
   const platform = vi.spyOn(window.navigator, 'platform', 'get').mockReturnValue('MacIntel');
   const onAskCodex = vi.fn();
   const onCommentDraftChange = vi.fn();
@@ -1962,14 +1962,14 @@ test('local review comments are added with Mod+Enter instead of asking the agent
     },
   };
   await setInputValue(textarea, 'Please check this.');
-  await pressCommentShortcut(textarea, false);
+  await pressCommentShortcut(textarea, true);
   expect(onUpdateComment).toHaveBeenCalledWith('comment-1', 'Please check this.');
   expect(onAskCodex).not.toHaveBeenCalled();
   expect(document.activeElement).not.toBe(textarea);
   expect(onCommentDraftChange).toHaveBeenLastCalledWith(null);
 });
 
-test('local review comments ask the agent with Mod+Alt+Enter', async () => {
+test('local review comments ask the agent with Mod+Enter', async () => {
   const platform = vi.spyOn(window.navigator, 'platform', 'get').mockReturnValue('MacIntel');
   const onAskCodex = vi.fn();
   const onUpdateComment = vi.fn();
@@ -1986,13 +1986,13 @@ test('local review comments ask the agent with Mod+Alt+Enter', async () => {
     },
   };
   await setInputValue(textarea, 'Explain this change.');
-  await pressCommentShortcut(textarea, true);
+  await pressCommentShortcut(textarea, false);
   expect(onAskCodex).toHaveBeenCalledWith('comment-1');
   expect(onUpdateComment).toHaveBeenCalledWith('comment-1', 'Explain this change.');
   expect(document.activeElement).toBe(textarea);
 });
 
-test('adding an empty local review comment with Mod+Enter discards it', async () => {
+test('adding an empty local review comment with Mod+Alt+Enter discards it', async () => {
   const platform = vi.spyOn(window.navigator, 'platform', 'get').mockReturnValue('MacIntel');
   const onAskCodex = vi.fn();
   const onDeleteComment = vi.fn();
@@ -2010,7 +2010,7 @@ test('adding an empty local review comment with Mod+Enter discards it', async ()
       platform.mockRestore();
     },
   };
-  await pressCommentShortcut(textarea, false);
+  await pressCommentShortcut(textarea, true);
   expect(onUpdateComment).not.toHaveBeenCalled();
   expect(onAskCodex).not.toHaveBeenCalled();
   await act(async () => {
@@ -2102,6 +2102,115 @@ test('failed pull request comments keep their draft and can be retried', async (
   expect(textarea?.value).toBe(comment.body);
 });
 
+const renderSessionReviewComment = async (
+  overrides: Partial<ReviewComment> = {},
+  pullRequest = false,
+) => {
+  const file = createChangedFile('src/session-comment.ts');
+  const comment = {
+    body: '',
+    filePath: file.path,
+    id: 'comment-1',
+    lineNumber: 1,
+    sectionId: file.sections[0].id,
+    side: 'additions',
+    ...overrides,
+  } satisfies ReviewComment;
+  const onAskCodex = vi.fn();
+  const onSendComment = vi.fn();
+  const onSubmitComment = vi.fn();
+  const view = await renderReact(
+    <ReviewCodeViewHarness
+      comments={[comment]}
+      files={[file]}
+      onAskCodex={onAskCodex}
+      onSendComment={onSendComment}
+      onSubmitComment={onSubmitComment}
+      supportsReviewCommentActions={pullRequest}
+      supportsSendComment
+    />,
+  );
+  return { onAskCodex, onSendComment, onSubmitComment, view };
+};
+
+const findButton = (container: HTMLElement, label: string) =>
+  [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+    (button) => button.textContent === label,
+  );
+
+test('session comments ask the launching session with Mod+Enter and the Ask button', async () => {
+  const platform = vi.spyOn(window.navigator, 'platform', 'get').mockReturnValue('MacIntel');
+  const { onAskCodex, onSendComment, view } = await renderSessionReviewComment();
+  await using _view = view;
+  await using _resource = {
+    async [Symbol.asyncDispose]() {
+      platform.mockRestore();
+    },
+  };
+  const textarea = view.container.querySelector<HTMLTextAreaElement>('.review-comment-input');
+  if (!textarea) {
+    throw new Error('Expected review comment textarea.');
+  }
+  textarea.focus();
+  await setInputValue(textarea, 'Why this width?');
+  await pressCommentShortcut(textarea, false);
+  expect(onSendComment).toHaveBeenCalledWith('comment-1');
+  onSendComment.mockClear();
+  await act(async () => findButton(view.container, 'Ask')?.click());
+  expect(onSendComment).toHaveBeenCalledWith('comment-1');
+  expect(onAskCodex).not.toHaveBeenCalled();
+});
+
+test('session comments show Sent in place of Ask once sent', async () => {
+  const { view } = await renderSessionReviewComment({ body: 'Sent already.', sentAt: 1 });
+  await using _view = view;
+  expect(findButton(view.container, 'Ask')).toBeUndefined();
+  expect(view.container.querySelector('.review-comment-sent-marker')?.textContent).toBe('Sent');
+});
+
+test('pull request session comments ask with Mod+Enter and submit with Mod+Alt+Enter', async () => {
+  const platform = vi.spyOn(window.navigator, 'platform', 'get').mockReturnValue('MacIntel');
+  const { onSendComment, onSubmitComment, view } = await renderSessionReviewComment(
+    { body: 'Check this.' },
+    true,
+  );
+  await using _view = view;
+  await using _resource = {
+    async [Symbol.asyncDispose]() {
+      platform.mockRestore();
+    },
+  };
+  const textarea = view.container.querySelector<HTMLTextAreaElement>('.review-comment-input');
+  if (!textarea) {
+    throw new Error('Expected review comment textarea.');
+  }
+  textarea.focus();
+  await pressCommentShortcut(textarea, true);
+  expect(onSubmitComment).toHaveBeenCalledWith('comment-1');
+  expect(onSendComment).not.toHaveBeenCalled();
+  textarea.focus();
+  await pressCommentShortcut(textarea, false);
+  expect(onSendComment).toHaveBeenCalledWith('comment-1');
+});
+
+test('local comments offer Ask and Comment and say both are possible', async () => {
+  const file = createChangedFile('src/comment.ts');
+  const comment = {
+    body: 'A note.',
+    filePath: file.path,
+    id: 'comment-1',
+    lineNumber: 1,
+    sectionId: file.sections[0].id,
+    side: 'additions',
+  } satisfies ReviewComment;
+  await using view = await renderReact(
+    <ReviewCodeViewHarness comments={[comment]} files={[file]} />,
+  );
+  expect(findButton(view.container, 'Ask')).toBeDefined();
+  expect(findButton(view.container, 'Comment')).toBeDefined();
+  expect(view.container.innerHTML).toContain('Ask a question or write a review comment');
+});
+
 test('working-tree share comments support the Comment button and Mod+Enter', async () => {
   const platform = vi.spyOn(window.navigator, 'platform', 'get').mockReturnValue('MacIntel');
   const file = createChangedFile('src/shared-comment.ts');
@@ -2118,6 +2227,7 @@ test('working-tree share comments support the Comment button and Mod+Enter', asy
     <ReviewCodeViewHarness
       comments={[comment]}
       files={[file]}
+      onAskCodex={undefined}
       onSubmitComment={onSubmitComment}
       supportsReviewCommentActions
     />,

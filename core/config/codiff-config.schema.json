@@ -45,7 +45,7 @@
         "commentCommand": {
           "type": "string",
           "default": "",
-          "description": "Command run when a review comment is sent with Mod+Enter in local (non-PR) mode. Use {repo}, {file}, {path}, {line}, {endLine}, {side}, {snippet}, {body}, and {target} as placeholders; the comment body is also always written to the command's stdin. Leave empty to disable sending comments."
+          "description": "Command run when Ask sends a review comment to the agent session that opened Codiff. Use {repo}, {file}, {path}, {line}, {endLine}, {side}, {snippet}, {body}, and {target} as placeholders; the comment body is also always written to the command's stdin. Leave empty to disable sending comments."
         },
         "copyCommentsOnClose": {
           "type": "boolean",
@@ -200,13 +200,13 @@
         },
         "submitComment": {
           "type": "string",
-          "default": "Mod+Enter",
+          "default": "Mod+Alt+Enter",
           "description": "Add the review comment being written, submitting it remotely when the review source supports it."
         },
         "askAgent": {
           "type": "string",
-          "default": "Mod+Alt+Enter",
-          "description": "Ask the configured agent about the review comment being written."
+          "default": "Mod+Enter",
+          "description": "Ask about the review comment being written. When Codiff was opened from an agent session and commentCommand is set, the comment goes to that session; otherwise the configured agent answers inline."
         },
         "discardComment": {
           "type": "string",
