@@ -16,11 +16,22 @@
 
 import { Buffer } from 'node:buffer';
 import { spawnSync } from 'node:child_process';
-import { closeSync, existsSync, fstatSync, openSync, readSync, readdirSync } from 'node:fs';
+import {
+  closeSync,
+  existsSync,
+  fstatSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  readSync,
+  readdirSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import process from 'node:process';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 const threadId = process.env.CLAUDE_SESSION_ID || '';
 const skillRoot = resolve(import.meta.dirname, '..');
@@ -210,6 +221,75 @@ if (rawArgs[0] === '--resolve-plan-comments') {
   process.exit(0);
 }
 
+const commentQueueClosedMarker = 'CODIFF_REVIEW_CLOSED';
+const commentQueuePollMs = 500;
+
+const shellQuote = (value) => `'${value.replaceAll("'", String.raw`'\''`)}'`;
+
+const readCommentQueueOffset = (offsetPath) => {
+  try {
+    return Number.parseInt(readFileSync(offsetPath, 'utf8'), 10) || 0;
+  } catch {
+    return 0;
+  }
+};
+
+const readCommentQueueFrom = (queuePath, offset) => {
+  const file = openSync(queuePath, 'r');
+  try {
+    const length = fstatSync(file).size - offset;
+    if (length <= 0) {
+      return { nextOffset: offset, text: '' };
+    }
+    const buffer = Buffer.allocUnsafe(length);
+    const bytesRead = readSync(file, buffer, 0, length, offset);
+    return { nextOffset: offset + bytesRead, text: buffer.toString('utf8', 0, bytesRead) };
+  } finally {
+    closeSync(file);
+  }
+};
+
+// `--watch-comments <queue>`: stream comments appended to a queue for a Monitor. The offset file
+// beside the queue lets a restarted watch resume where the last one stopped.
+if (rawArgs[0] === '--watch-comments') {
+  const queuePath = rawArgs[1] ? resolve(rawArgs[1]) : '';
+  if (!queuePath || !existsSync(queuePath)) {
+    process.stderr.write(`open-codiff: comment queue not found at ${queuePath}.\n`);
+    process.exit(1);
+  }
+
+  const offsetPath = `${queuePath}.offset`;
+  let offset = readCommentQueueOffset(offsetPath);
+  for (;;) {
+    let chunk;
+    try {
+      chunk = readCommentQueueFrom(queuePath, offset);
+    } catch (error) {
+      process.stderr.write(`open-codiff: ${error instanceof Error ? error.message : error}\n`);
+      process.exit(1);
+    }
+
+    if (chunk.nextOffset > offset) {
+      offset = chunk.nextOffset;
+      writeFileSync(offsetPath, String(offset));
+      const lines = chunk.text.split('\n');
+      const comments = lines
+        .filter((line) => line !== commentQueueClosedMarker)
+        .join('\n')
+        .trim();
+      if (comments) {
+        process.stdout.write(`${comments}\n`);
+      }
+      if (lines.includes(commentQueueClosedMarker)) {
+        process.stdout.write('Codiff review closed. Stop watching for review comments.\n');
+        process.exit(0);
+      }
+    }
+
+    await sleep(commentQueuePollMs);
+  }
+}
+
 // `--guide`: print Codiff's current walkthrough authoring guide and exit. The
 // guidance lives in Codiff (not this skill), so it stays current across updates.
 if (rawArgs.includes('--guide')) {
@@ -375,6 +455,15 @@ const hasRepositoryTarget = forwardedArgs.some(
   (arg) => !arg.startsWith('-') && existsSync(resolve(sessionCwd, arg)),
 );
 
+const createCommentQueue = () => {
+  const queuePath = join(mkdtempSync(join(tmpdir(), 'codiff-comments-')), 'comments.txt');
+  writeFileSync(queuePath, '');
+  return queuePath;
+};
+
+const commentQueue = process.env.HERDR_PANE_ID ? '' : createCommentQueue();
+const agentTarget = process.env.HERDR_PANE_ID || commentQueue;
+
 const codiffCommand = getCodiffCommand();
 const args = [
   ...codiffCommand.args,
@@ -383,7 +472,8 @@ const args = [
   'claude',
   ...(walkthroughFilePath ? ['--walkthrough-file', walkthroughFilePath] : []),
   ...(threadId ? ['--claude-session', threadId] : []),
-  ...(process.env.HERDR_PANE_ID ? ['--agent-target', process.env.HERDR_PANE_ID] : []),
+  '--agent-target',
+  agentTarget,
   ...forwardedArgs,
   ...(hasRepositoryTarget ? [] : [sessionCwd]),
 ];
@@ -395,6 +485,15 @@ const result = spawnSync(codiffCommand.command, args, {
 if (result.error) {
   process.stderr.write(`${result.error.message}\n`);
   process.exit(1);
+}
+
+if (commentQueue && result.status === 0) {
+  const monitor = [process.execPath, import.meta.filename, '--watch-comments', commentQueue]
+    .map(shellQuote)
+    .join(' ');
+  process.stdout.write(
+    `CODIFF_COMMENT_QUEUE ${JSON.stringify({ monitor, queue: commentQueue })}\n`,
+  );
 }
 
 process.exit(result.status ?? 0);
