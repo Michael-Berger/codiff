@@ -5,7 +5,8 @@ import { expect, test } from 'vite-plus/test';
 import { createTemporaryDirectory } from '../../core/__tests__/helpers/resources.ts';
 
 const require = createRequire(import.meta.url);
-const { sendComment } = require('../main/comment-command.cjs') as {
+const { closeCommentQueue, sendComment } = require('../main/comment-command.cjs') as {
+  closeCommentQueue: (target: string | undefined) => void;
   sendComment: (options: {
     commentCommand: string;
     repositoryRoot: string;
@@ -175,4 +176,28 @@ test('returns a message when no comment command is configured', async () => {
   });
 
   expect(result).toEqual({ error: 'No comment command is configured.', ok: false });
+});
+
+test('closing a comment queue appends the closed marker', async () => {
+  await using directory = await createTemporaryDirectory('codiff-comment-queue-');
+  const queuePath = join(directory.path, 'comments.txt');
+  writeFileSync(queuePath, 'Codiff review comment on a.ts:1\nfirst\n\n');
+
+  closeCommentQueue(queuePath);
+
+  expect(readFileSync(queuePath, 'utf8')).toBe(
+    'Codiff review comment on a.ts:1\nfirst\n\nCODIFF_REVIEW_CLOSED\n',
+  );
+});
+
+test('closing ignores pane targets and missing queues', async () => {
+  await using directory = await createTemporaryDirectory('codiff-comment-queue-');
+  const missingQueuePath = join(directory.path, 'missing.txt');
+
+  closeCommentQueue('w1E:p1');
+  closeCommentQueue(missingQueuePath);
+  closeCommentQueue(undefined);
+
+  expect(existsSync(missingQueuePath)).toBe(false);
+  expect(existsSync(join(process.cwd(), 'w1E:p1'))).toBe(false);
 });

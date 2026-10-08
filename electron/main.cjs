@@ -83,7 +83,7 @@ const {
   withRelaunchAgentOptions,
 } = require('./main/command-line.cjs');
 const { createSkillInstaller } = require('./main/agent-skill.cjs');
-const { sendComment } = require('./main/comment-command.cjs');
+const { closeCommentQueue, sendComment } = require('./main/comment-command.cjs');
 const { getCommandEnvironment } = require('./login-shell-environment.cjs');
 const { createEditorOpener } = require('./main/editor.cjs');
 const { createDefinitionSearchCoordinator } = require('./definition-search.cjs');
@@ -1133,6 +1133,7 @@ const createWindow = (
     walkthroughProgressGenerations.delete(webContentsId);
     windowRepositories.delete(webContentsId);
     windowRepositoryRequests.delete(webContentsId);
+    closeCommentQueue(windowLaunchOptions.get(webContentsId)?.agentTarget);
     windowLaunchOptions.delete(webContentsId);
   });
   window.webContents.on('render-process-gone', () => {
@@ -1291,6 +1292,7 @@ const focusOrCreateWindow = (
         );
 
   if (matchingWindow) {
+    const previousAgentTarget = windowLaunchOptions.get(matchingWebContentsId)?.agentTarget;
     if (launchOptions.planFile || launchOptions.walkthrough || launchOptions.walkthroughFile) {
       walkthroughLaunchController.clear(matchingWebContentsId);
       windowRepositories.set(matchingWebContentsId, identity?.repositoryRoot || repositoryPath);
@@ -1315,6 +1317,9 @@ const focusOrCreateWindow = (
         matchingWebContentsId,
         withRelaunchAgentOptions(windowLaunchOptions.get(matchingWebContentsId), launchOptions),
       );
+    }
+    if (windowLaunchOptions.get(matchingWebContentsId)?.agentTarget !== previousAgentTarget) {
+      closeCommentQueue(previousAgentTarget);
     }
     focusWindow(matchingWindow);
     return matchingWindow;
