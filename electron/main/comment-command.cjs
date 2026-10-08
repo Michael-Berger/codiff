@@ -1,7 +1,8 @@
 // @ts-check
 
 const { execFile } = require('node:child_process');
-const { resolve } = require('node:path');
+const { appendFileSync, existsSync } = require('node:fs');
+const { isAbsolute, resolve } = require('node:path');
 const { validateRepositoryPath } = require('../git-state/common.cjs');
 const { expandCommandPlaceholders, parseCommandTemplate } = require('./command-template.cjs');
 
@@ -103,4 +104,22 @@ const sendComment = ({ commentCommand, env = process.env, repositoryRoot, reques
     child.stdin?.end(body);
   });
 
-module.exports = { sendComment };
+const COMMENT_QUEUE_CLOSED_MARKER = 'CODIFF_REVIEW_CLOSED';
+
+/**
+ * An absolute-path target is a comment queue an agent watches; the marker tells it the review
+ * window closed.
+ *
+ * @param {string | undefined} target
+ */
+const closeCommentQueue = (target) => {
+  if (!target || !isAbsolute(target) || !existsSync(target)) {
+    return;
+  }
+
+  try {
+    appendFileSync(target, `${COMMENT_QUEUE_CLOSED_MARKER}\n`);
+  } catch {}
+};
+
+module.exports = { COMMENT_QUEUE_CLOSED_MARKER, closeCommentQueue, sendComment };
