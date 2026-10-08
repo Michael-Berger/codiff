@@ -1416,6 +1416,10 @@ if (squirrelStartup || !lock) {
   app.quit();
 } else {
   app.setName('Codiff');
+  app.setAboutPanelOptions({
+    applicationVersion: `${app.getVersion()}-fork`,
+    version: app.getVersion(),
+  });
 
   app.on('second-instance', (event, commandLine, workingDirectory, additionalData) => {
     const data = /** @type {SingleInstanceAdditionalData} */ (additionalData || {});

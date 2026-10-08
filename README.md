@@ -113,6 +113,10 @@ Claude Code skill, and sets `commentCommand` unless you already have one. Pass `
 Codiff straight from the checkout instead. Other agents' skills install from the app's Install
 Skill menu.
 
+To check that the fork is the Codiff you are running, look for `-fork` in the version:
+`codiff --version` prints something like `codiff v1.16.0-fork`, and Codiff > About Codiff shows
+the same.
+
 ### Updates
 
 The fork never checks for or installs updates: upstream releases would replace it and drop the
