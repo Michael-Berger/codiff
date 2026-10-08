@@ -97,23 +97,28 @@ The bundled `codiff` skill for Claude Code sets the target for you:
 
 ### Install the fork
 
-Build it locally, since fork builds are unsigned and not published to Homebrew:
+Fork builds are not published, so you build it yourself. You need Node.js and pnpm
+(`corepack enable pnpm`). If you installed upstream Codiff with Homebrew, run
+`brew uninstall --cask codiff` first; your settings in `~/.codiff` are kept.
 
 ```bash
-pnpm install
-pnpm exec vpr make:mac
+git clone https://github.com/Michael-Berger/codiff.git
+cd codiff
+contrib/install-fork
 ```
 
-Copy `out/make/**/Codiff.app` to `/Applications`. If you installed upstream through Homebrew, run
-`brew uninstall --cask codiff` first so a `brew upgrade` cannot overwrite the fork. macOS blocks the
-unsigned app once; right-click it and choose Open, or run
-`xattr -dr com.apple.quarantine /Applications/Codiff.app`.
+The script builds `Codiff.app` into `/Applications` (macOS on Apple Silicon), links `codiff`,
+`codiff-comment`, and `herdr-comment` (when Herdr is installed) into `~/.local/bin`, installs the
+Claude Code skill, and sets `commentCommand` unless you already have one. Pass `--no-app` to run
+Codiff straight from the checkout instead. Other agents' skills install from the app's Install
+Skill menu.
 
 ### Updates
 
 The fork never checks for or installs updates: upstream releases would replace it and drop the
 fork's changes. The `checkForUpdates` setting has no effect, the Check for Updates menu item is
-gone, and `codiff update` exits with an error. To update, pull the fork and rebuild it.
+gone, and `codiff update` exits with an error. To update, run `git pull` and then
+`contrib/install-fork` again.
 
 ## Why Codiff
 
