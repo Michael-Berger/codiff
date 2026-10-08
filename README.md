@@ -51,6 +51,9 @@ placeholders expand to an empty string.
 
 ### Configure it
 
+[`contrib/install-fork`](#install-the-fork) sets this up for you. Configure it by hand only to use
+your own command.
+
 Open `Codiff > Open Config File...` and add `commentCommand` under `settings` in
 `~/.codiff/codiff.jsonc`. Any executable on your login shell's PATH works. Two examples:
 
@@ -101,8 +104,8 @@ The bundled `codiff` skill for Claude Code sets the target for you:
 ### Install the fork
 
 Fork builds are not published, so you build it yourself. You need Node.js and pnpm
-(`corepack enable pnpm`). If you installed upstream Codiff with Homebrew, run
-`brew uninstall --cask codiff` first; your settings in `~/.codiff` are kept.
+(`corepack enable pnpm`), plus `jq` if you use Herdr. If you installed upstream Codiff with
+Homebrew, run `brew uninstall --cask codiff` first; your settings in `~/.codiff` are kept.
 
 ```bash
 git clone https://github.com/Michael-Berger/codiff.git
