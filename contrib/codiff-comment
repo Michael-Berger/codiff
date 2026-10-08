@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Deliver one Codiff review comment to the agent session that opened Codiff.
+#
+# Point Codiff's commentCommand at this script and it routes by {target}:
+#   - an absolute path is a comment queue file that the agent watches (the codiff skill starts a
+#     Claude Code Monitor on it), so this appends the comment to that file;
+#   - anything else is a Herdr pane, handed to herdr-comment along with any extra arguments.
+#
+# Usage:
+#   codiff-comment --target <target> --file <path> [--path <repo-relative path>] [--line <n>]
+#                  [--end <n>] [--snippet <code>] [herdr-comment arguments...]
+#
+# The comment body is read from stdin. Exit codes: 0 delivered, 1 usage error, otherwise
+# herdr-comment's exit code.
+
+set -euo pipefail
+
+die() { printf '%s\n' "$*" >&2; exit 1; }
+
+target=""; file=""; path=""; line=""; end=""; snippet=""; passthrough=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target)  target="$2"; shift 2 ;;
+    --file)    file="$2"; shift 2 ;;
+    --path)    path="$2"; shift 2 ;;
+    --line)    line="$2"; shift 2 ;;
+    --end)     end="$2"; shift 2 ;;
+    --snippet) snippet="$2"; shift 2 ;;
+    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    *)         passthrough+=("$1"); shift ;;
+  esac
+done
+
+[[ -n "$file" ]] || die "--file is required"
+
+if [[ "$target" != /* ]]; then
+  exec "${HERDR_COMMENT_BIN:-herdr-comment}" --file "$file" --line "$line" --end "$end" \
+    --snippet "$snippet" --pane "$target" ${passthrough[@]+"${passthrough[@]}"}
+fi
+
+[[ -f "$target" ]] || die "comment queue not found: $target"
+
+body="$(tr -d '\r' | sed 's/[[:space:]]*$//')"
+[[ -n "${body//[[:space:]]/}" ]] || die "empty comment"
+
+location="${path:-$file}"
+if [[ -n "$line" ]]; then
+  location="$location:$line"
+  [[ -n "$end" && "$end" != "$line" ]] && location="$location-$end"
+fi
+
+block="Codiff review comment on $location"$'\n'
+if [[ -n "$snippet" ]]; then
+  block="$block$(printf '%s\n' "$snippet" | sed 's/^/> /')"$'\n'
+fi
+block="$block$body"$'\n\n'
+
+# One write per comment, so the watcher never reads half of one.
+printf '%s' "$block" >> "$target"

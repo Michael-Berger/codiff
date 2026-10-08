@@ -132,7 +132,17 @@ approval document.
    `node scripts/open-codiff.mjs --commit <sha> /path/to/repository` (or `--branch <ref>`, or only
    the repository for the working tree). The other arguments are forwarded to Codiff verbatim,
    and comments reach this pane the same way, except in a pull request review, where they go to
-   the pull request. Do not summarize the diff back to the user.
+   the pull request. Do not summarize the diff back to the user. In both walkthrough and diff
+   mode, without `HERDR_PANE_ID`, the launcher instead creates a comment queue and prints
+   `CODIFF_COMMENT_QUEUE {"monitor": "<command>", "queue": "<path>"}`. Start the Monitor tool with
+   that `monitor` command, description "Codiff review comments", and `timeout_ms` 1800000. Each
+   event is a review comment the user just sent from Codiff (a header naming the file and line, the
+   commented code quoted with `>`, then the comment): handle it as an instruction from the user,
+   and keep working on anything already in progress. Monitor events are not shown in the
+   conversation, so begin each reply to one by quoting the comment as a blockquote: its `path:line`
+   and the comment text, without the quoted code. When the monitor
+   expires, start it again with the same command; it resumes after the last comment it delivered.
+   Stop when an event says the Codiff review closed.
 
    Codiff validates and repairs the document against the live diff, so anchors that drift
    are pinned to a real section rather than dropped.

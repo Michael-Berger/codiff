@@ -1236,6 +1236,7 @@ test('Claude skill launcher uses the session cwd and forwards --agent claude', a
         CLAUDE_SESSION_ID: sessionId,
         CODIFF_COMMAND: logger.commandPath,
         HERDR_PANE_ID: '',
+        TMPDIR: logger.directory,
       },
     },
   );
@@ -1248,9 +1249,65 @@ test('Claude skill launcher uses the session cwd and forwards --agent claude', a
     walkthroughFile,
     '--claude-session',
     sessionId,
+    '--agent-target',
+    expect.stringMatching(/codiff-comments-[^/]+\/comments\.txt$/),
     'HEAD',
     repositoryPath,
   ]);
+});
+
+test('Claude skill launcher outside Herdr targets a new comment queue and prints its monitor', async () => {
+  await using logger = await createFakeCommandLogger('codiff-claude-launcher-', 'codiff');
+  const repositoryPath = join(logger.directory, 'repo');
+
+  await mkdir(repositoryPath, { recursive: true });
+
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [resolve('claude/skills/codiff/scripts/open-codiff.mjs'), repositoryPath],
+    {
+      cwd: resolve('claude/skills/codiff'),
+      env: {
+        ...logger.env,
+        CLAUDE_SESSION_ID: '',
+        CODIFF_COMMAND: logger.commandPath,
+        HERDR_PANE_ID: '',
+        TMPDIR: logger.directory,
+      },
+    },
+  );
+
+  const args = await logger.readArgs();
+  const queuePath = args[args.indexOf('--agent-target') + 1];
+  expect(queuePath.startsWith(logger.directory)).toBe(true);
+  expect(await readFile(queuePath, 'utf8')).toBe('');
+  const announcement = stdout.match(/^CODIFF_COMMENT_QUEUE (.+)$/m)?.[1];
+  expect(JSON.parse(announcement ?? 'null')).toEqual({
+    monitor: `'${process.execPath}' '${resolve('claude/skills/codiff/scripts/open-codiff.mjs')}' '--watch-comments' '${queuePath}'`,
+    queue: queuePath,
+  });
+});
+
+test('comment queue watcher resumes after the last delivered comment and stops on close', async () => {
+  await using directory = await createTemporaryDirectory('codiff-comment-queue-');
+  const queuePath = join(directory.path, 'comments.txt');
+  const delivered = 'Codiff review comment on a.ts:1\nfirst\n\n';
+
+  await writeFile(
+    queuePath,
+    `${delivered}Codiff review comment on b.ts:2\nsecond\n\nCODIFF_REVIEW_CLOSED\n`,
+  );
+  await writeFile(`${queuePath}.offset`, String(Buffer.byteLength(delivered)));
+
+  const { stdout } = await execFileAsync(process.execPath, [
+    resolve('claude/skills/codiff/scripts/open-codiff.mjs'),
+    '--watch-comments',
+    queuePath,
+  ]);
+
+  expect(stdout).toBe(
+    'Codiff review comment on b.ts:2\nsecond\nCodiff review closed. Stop watching for review comments.\n',
+  );
 });
 
 test('Claude skill launcher forwards --agent-target from HERDR_PANE_ID', async () => {

@@ -63,18 +63,21 @@ Open `Codiff > Open Config File...` and add `commentCommand` under `settings` in
 ```jsonc
 {
   "settings": {
-    // Paste the comment into the Claude Code agent running in Herdr, and submit it.
-    "commentCommand": "herdr-comment --file {file} --line {line} --end {endLine} --snippet {snippet} --pane {target} --send",
+    // Send each comment to the Claude Code session that opened Codiff.
+    "commentCommand": "codiff-comment --target {target} --file {file} --path {path} --line {line} --end {endLine} --snippet {snippet} --send",
   },
 }
 ```
 
-The second example uses the bridge script shipped in [`contrib/herdr`](contrib/herdr/README.md).
-Leave `commentCommand` empty (the default) to turn the feature off.
+The second example uses [`contrib/codiff-comment`](contrib/codiff-comment). Put it on your PATH
+(for example `ln -s "$PWD/contrib/codiff-comment" ~/.local/bin/`). It delivers to Claude Code in
+any app, including Claude Desktop, and to sessions running in Herdr through
+[`contrib/herdr`](contrib/herdr/README.md). Leave `commentCommand` empty (the default) to turn the
+feature off.
 
 The config file is watched, so the change applies to open windows without a restart. For editor
 completion on the new key, point `$schema` at this fork instead of upstream:
-`https://raw.githubusercontent.com/Michael-Berger/codiff/feat/comment-command/core/config/codiff-config.schema.json`.
+`https://raw.githubusercontent.com/Michael-Berger/codiff/main/core/config/codiff-config.schema.json`.
 
 ### Tell the command where to send comments
 
@@ -83,9 +86,14 @@ completion on the new key, point `$schema` at this fork instead of upstream:
 `{target}`. Use it to identify the agent session that should receive the comments, for example the
 terminal pane the review was launched from.
 
-The bundled `codiff` skill for Claude Code forwards `HERDR_PANE_ID` as `--agent-target`
-automatically, so a walkthrough opened from a Claude Code session running in Herdr routes its
-comments back to that session with no extra setup.
+The bundled `codiff` skill for Claude Code sets the target for you:
+
+- **In Herdr**, it forwards `HERDR_PANE_ID`, and `codiff-comment` pastes each comment into that
+  pane.
+- **Anywhere else** (Claude Desktop, an IDE, a plain terminal), it creates a comment queue file and
+  passes its path. `codiff-comment` appends each comment to the file, and the skill has Claude
+  watch it with the Monitor tool, so comments arrive while Claude keeps working. Closing the Codiff
+  window ends the watch.
 
 ### Install the fork
 
