@@ -3,7 +3,8 @@
 > [!NOTE]
 > **This is a fork of [nkzw-tech/codiff](https://github.com/nkzw-tech/codiff).** It adds one
 > feature: review comments can be sent straight to a running coding agent instead of copied to the
-> clipboard. Everything else is unchanged. See [What this fork adds](#what-this-fork-adds).
+> clipboard. It also never updates itself, since an upstream update would replace the fork. See
+> [What this fork adds](#what-this-fork-adds).
 
 Codiff is a beautiful, minimal, local diff viewer for reviewing Git changes and committing them.
 
@@ -99,6 +100,12 @@ Copy `out/make/**/Codiff.app` to `/Applications`. If you installed upstream thro
 `brew uninstall --cask codiff` first so a `brew upgrade` cannot overwrite the fork. macOS blocks the
 unsigned app once; right-click it and choose Open, or run
 `xattr -dr com.apple.quarantine /Applications/Codiff.app`.
+
+### Updates
+
+The fork never checks for or installs updates: upstream releases would replace it and drop the
+fork's changes. The `checkForUpdates` setting has no effect, the Check for Updates menu item is
+gone, and `codiff update` exits with an error. To update, pull the fork and rebuild it.
 
 ## Why Codiff
 

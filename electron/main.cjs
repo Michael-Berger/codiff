@@ -646,12 +646,6 @@ const buildApplicationMenu = () =>
               label: 'Codiff',
               submenu: [
                 { role: 'about' },
-                {
-                  click: () => {
-                    void checkForUpdatesFromMenu();
-                  },
-                  label: 'Check for Updates…',
-                },
                 { type: 'separator' },
                 {
                   click: (_menuItem, browserWindow) =>
@@ -1304,6 +1298,7 @@ const focusOrCreateWindow = (
 const INITIAL_UPDATE_CHECK_DELAY_MS = 10 * 1000;
 const UPDATE_CHECK_TIMER_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
+// The updater is never started: upstream releases would replace this fork and drop its patches.
 /** @type {ReturnType<typeof createUpdater> | null} */
 let updater = null;
 
@@ -1428,10 +1423,6 @@ if (squirrelStartup || !lock) {
         }
       }
     });
-
-    initUpdater();
-    setTimeout(runScheduledUpdateCheck, INITIAL_UPDATE_CHECK_DELAY_MS);
-    setInterval(runScheduledUpdateCheck, UPDATE_CHECK_TIMER_INTERVAL_MS);
 
     const launchOptions = getLaunchOptions();
     focusOrCreateWindow(
