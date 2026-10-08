@@ -90,7 +90,10 @@ approval document.
    staged, fall back to the working tree (`git diff`) and say so.
 
 3. **Author the JSON** per the guide and write it to a unique temporary file outside the
-   repository, such as `$TMPDIR/codiff-walkthrough-<id>.json`.
+   repository, such as `$TMPDIR/codiff-walkthrough-<id>.json`. Write it with node or python, or
+   a quoted heredoc (`<<'EOF'`), never with shell variables next to the ids: in zsh, `$VAR:h1`
+   applies the `:h` modifier and silently truncates every hunk id, which Codiff reports as
+   "Walkthrough out of date".
 
 4. **Complete the selected handoff.**
 
