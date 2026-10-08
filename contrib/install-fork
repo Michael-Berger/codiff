@@ -4,8 +4,9 @@
 # review comments reach the agent session that opened Codiff. Re-run it after `git pull` to update.
 #
 # Usage:
-#   contrib/install-fork [--no-app] [--app-dir <dir>] [--bin-dir <dir>]
+#   contrib/install-fork [--no-app] [--app-dir <dir>] [--bin-dir <dir>] [--check]
 #
+#   --check           Only check the prerequisites (Node, pnpm, a C++ compiler, Python) and exit.
 #   --no-app          Run Codiff from this checkout instead of building Codiff.app. Changes take
 #                     effect after `vpr build`, without reinstalling.
 #   --app-dir <dir>   Where Codiff.app goes (default /Applications). macOS on Apple Silicon only.
@@ -15,12 +16,14 @@
 # bin dir), so a trial run can stay out of the real home directory.
 
 set -euo pipefail
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 repo="$(CDPATH= cd -P "$(dirname "$0")/.." && pwd)"
 install_home="${CODIFF_INSTALL_HOME:-$HOME}"
 build_app=1
 app_dir="/Applications"
 bin_dir="$install_home/.local/bin"
+check_only=0
 
 die() { printf 'install-fork: %s\n' "$*" >&2; exit 1; }
 step() { printf '\n==> %s\n' "$*"; }
@@ -30,17 +33,78 @@ while [[ $# -gt 0 ]]; do
     --no-app)  build_app=0; shift ;;
     --app-dir) app_dir="$2"; shift 2 ;;
     --bin-dir) bin_dir="$2"; shift 2 ;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    --check)   check_only=1; shift ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *)         die "unknown argument: $1" ;;
   esac
 done
 
-command -v node >/dev/null || die "Node.js is required (https://nodejs.org)."
-command -v pnpm >/dev/null || die "pnpm is required: run \`corepack enable pnpm\`."
+tmp_dir="${TMPDIR:-/tmp}"
+tmp_dir="${tmp_dir%/}"
+log="$tmp_dir/codiff-install-fork.log"
+exec > >(tee "$log") 2>&1
+trap 'status=$?; [[ $status -eq 0 ]] || printf "\ninstall-fork failed. Full output: %s\n" "$log"' EXIT
+
+required_major() {
+  sed -n "s/.*\"$1\": *\">=\([0-9]*\).*/\1/p" "$repo/package.json" | head -1
+}
+
+step "Checking prerequisites"
+problems=()
+node_major="$(required_major node)"
+pnpm_major="$(required_major pnpm)"
+
+if ! command -v node >/dev/null; then
+  problems+=("Node.js $node_major or newer is required (https://nodejs.org).")
+elif node_version="$(node -p process.versions.node)" && (( ${node_version%%.*} < node_major )); then
+  problems+=("Node.js $node_major or newer is required; found $node_version.")
+fi
+
+# Inside the repo, corepack runs the pnpm version pinned in package.json.
+if ! command -v pnpm >/dev/null; then
+  problems+=("pnpm is required: run \`corepack enable pnpm\`.")
+elif ! pnpm_version="$(cd "$repo" && pnpm --version 2>/dev/null)"; then
+  problems+=("pnpm did not run in $repo; run \`corepack enable pnpm\` and try again.")
+elif (( ${pnpm_version%%.*} < pnpm_major )); then
+  problems+=("pnpm $pnpm_major or newer is required; found $pnpm_version. Run \`corepack enable pnpm\` so the repo's pinned version is used.")
+fi
+
+# native-keymap has no prebuilt binary, and packaging recompiles native modules for Electron.
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  if ! xcode-select -p >/dev/null 2>&1; then
+    problems+=("Xcode Command Line Tools are required to compile native modules: run \`xcode-select --install\`.")
+  elif ! compiler_error="$(printf 'int main() { return 0; }\n' |
+    xcrun clang++ -x c++ - -o "$tmp_dir/codiff-install-fork-cc" 2>&1)"; then
+    problems+=("The C++ compiler does not work, so native modules cannot be built:
+$(printf '%s\n' "$compiler_error" | sed -n '1,5s/^/    /p')
+  Usual fixes: \`sudo xcodebuild -license accept\` (full Xcode), \`sudo xcode-select --reset\`, or
+  remove /Library/Developer/CommandLineTools and run \`xcode-select --install\` again after a macOS
+  upgrade.")
+  fi
+elif ! command -v c++ >/dev/null || ! command -v make >/dev/null; then
+  problems+=("A C++ compiler and make are required to compile native modules (for example build-essential).")
+fi
+rm -f "$tmp_dir/codiff-install-fork-cc"
+
+python3 -c '' >/dev/null 2>&1 || problems+=("Python 3 is required to compile native modules.")
 
 if [[ "$build_app" -eq 1 ]]; then
   [[ "$(uname -sm)" == "Darwin arm64" ]] ||
-    die "Codiff.app builds for macOS on Apple Silicon only; use --no-app elsewhere."
+    problems+=("Codiff.app builds for macOS on Apple Silicon only; use --no-app elsewhere.")
+fi
+
+if (( ${#problems[@]} > 0 )); then
+  printf 'Fix these, then re-run this script:\n' >&2
+  printf -- '- %s\n' "${problems[@]}" >&2
+  exit 1
+fi
+printf 'Node %s, pnpm %s, compiler and Python OK.\n' "$node_version" "$pnpm_version"
+if command -v herdr >/dev/null && ! command -v jq >/dev/null; then
+  printf 'Warning: herdr-comment needs jq to send comments to Herdr (brew install jq).\n'
+fi
+[[ "$check_only" -eq 0 ]] || exit 0
+
+if [[ "$build_app" -eq 1 ]]; then
   if command -v brew >/dev/null && brew list --cask codiff >/dev/null 2>&1; then
     die "Upstream Codiff is installed with Homebrew and would replace this fork. Run \`brew uninstall --cask codiff\` (your settings are kept), then re-run this script."
   fi
