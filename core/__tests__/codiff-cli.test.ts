@@ -1664,7 +1664,7 @@ test('codiff-app prints version and exits 0', async () => {
   const { stdout } = await execFileAsync(resolve('bin/codiff-app'), ['--version'], {
     encoding: 'utf8',
   });
-  expect(stdout).toMatch(/^codiff v\d+\.\d+\.\d+\n$/);
+  expect(stdout).toMatch(/^codiff v\d+\.\d+\.\d+-fork\n$/);
 });
 
 test('codiff --walkthrough-guide prints the guide and embedded schema, then exits 0', async () => {
@@ -1709,4 +1709,20 @@ test('codiff update refuses to update the fork', async () => {
     code: 1,
     stderr: 'codiff: updates are disabled in this fork.\n',
   });
+});
+
+test('codiff --version reports the fork version', async () => {
+  const { version } = JSON.parse(await readFile(resolve('package.json'), 'utf8')) as {
+    version: string;
+  };
+
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [resolve('bin/codiff.js'), '--version'],
+    {
+      encoding: 'utf8',
+    },
+  );
+
+  expect(stdout).toBe(`codiff v${version}-fork\n`);
 });

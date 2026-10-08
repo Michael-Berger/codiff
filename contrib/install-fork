@@ -128,4 +128,5 @@ if (config.settings.commentCommand === commentCommand) {
 NODE
 
 step "Done"
+printf 'Installed %s\n' "$("$bin_dir/codiff" --version)"
 printf 'Run `codiff` in a repository, or ask Claude Code to "open this change in Codiff".\n'

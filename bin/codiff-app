@@ -187,7 +187,7 @@ show_help() {
   gray="$(printf '\033[90m')"
   reset="$(printf '\033[0m')"
 
-  printf '%s\n' "${blue_bold}codiff v${version}${reset} ${gray}A fast local diff viewer.${reset}"
+  printf '%s\n' "${blue_bold}codiff v${version}-fork${reset} ${gray}A fast local diff viewer.${reset}"
   printf '\n'
   printf '%s\n' "${blue_bold}Usage:${reset} ${gray}codiff [options] [<ref> | <pr> | <url>] [path]${reset}"
   printf '\n'
@@ -458,7 +458,7 @@ for arg in "$@"; do
       exit 0
       ;;
     --version|-v)
-      printf 'codiff v%s\n' "$(codiff_version)"
+      printf 'codiff v%s-fork\n' "$(codiff_version)"
       print_update_notice
       exit 0
       ;;

@@ -134,12 +134,12 @@ const run = async () => {
   const parsedArguments = parseArguments(process.argv.slice(2));
 
   if (parsedArguments.help) {
-    process.stdout.write(formatHelpText(packageJson.version));
+    process.stdout.write(formatHelpText(`${packageJson.version}-fork`));
     return;
   }
 
   if (parsedArguments.version) {
-    process.stdout.write(`codiff v${packageJson.version}\n`);
+    process.stdout.write(`codiff v${packageJson.version}-fork\n`);
     return;
   }
 
