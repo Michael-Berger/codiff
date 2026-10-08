@@ -28,8 +28,9 @@ several in one turn.
 ## How a comment is routed
 
 1. `{target}` is the Herdr pane Codiff was launched from. The bundled `codiff` skill forwards
-   `HERDR_PANE_ID` as `--agent-target` automatically. A pane that no longer hosts an agent in the
-   repository is ignored.
+   `HERDR_PANE_ID` as `--agent-target` automatically. It is used even when the agent works in a
+   different checkout than the file, as in a pull request review. A pane that no longer hosts an
+   agent is ignored.
 2. Otherwise, the agent whose working directory is inside the file's git worktree. When several
    match, the focused one wins; pass `--agent <name>` to pick one by its pane title.
 
