@@ -14,16 +14,19 @@ Codiff is a beautiful, minimal, local diff viewer for reviewing Git changes and 
 ## What this fork adds
 
 Upstream Codiff lets you copy pending review comments as Markdown and paste them into an agent
-yourself. This fork adds a `commentCommand` setting: when it is set, pressing
-<kbd>Mod</kbd>+<kbd>Enter</kbd> on a comment runs that command with the comment's details, so the
-comment lands in your agent while you keep reviewing.
+yourself, and its **Ask** button starts a fresh one-off agent run. This fork adds a
+`commentCommand` setting: when it is set and an agent session opened Codiff, **Ask** (or
+<kbd>Mod</kbd>+<kbd>Enter</kbd>) runs that command with the comment's details, so the comment lands
+in that session while you keep reviewing.
 
 ### How it works
 
-1. You write a comment on a local review (a working tree, commit, branch, or range; pull request
-   reviews still post to GitHub or GitLab as before).
-2. You press <kbd>Mod</kbd>+<kbd>Enter</kbd>. With no `commentCommand` set, this only leaves the
-   comment box as before.
+1. An agent session opens Codiff with `--agent-target` (the bundled skills do this), and you write
+   a comment on any review: a working tree, commit, branch, range, or pull request.
+2. You click **Ask** or press <kbd>Mod</kbd>+<kbd>Enter</kbd>. **Comment** (or
+   <kbd>Mod</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd>) keeps upstream's behavior: it saves a local
+   comment, or posts to GitHub or GitLab in a pull request review. Without `commentCommand` or an
+   agent target, **Ask** is upstream's one-off agent reply.
 3. Codiff runs your command once for that comment. The comment body is written to the command's
    stdin, and placeholders in the command string are filled in:
 
@@ -40,8 +43,8 @@ comment lands in your agent while you keep reviewing.
    | `{target}`  | The value passed to `codiff --agent-target`, or empty (see below) |
 
 4. On success the comment shows a **Sent** marker and will not be sent again. On failure Codiff
-   shows the command's first line of stderr in a toast and leaves the comment unsent, so
-   <kbd>Mod</kbd>+<kbd>Enter</kbd> retries it.
+   shows the command's first line of stderr in a toast and leaves the comment unsent, so **Ask**
+   retries it.
 
 The command runs without a shell, so a multi-line body or snippet is safe in an argument. Empty
 placeholders expand to an empty string.
@@ -282,8 +285,8 @@ counts; when it is `false`, Codiff hides those changes from the working-tree rev
     "openFile": "Mod+Shift+o",
     "prevSearchMatch": "Shift+Enter",
     "closeSearch": "Escape",
-    "submitComment": "Mod+Enter",
-    "askAgent": "Mod+Alt+Enter",
+    "submitComment": "Mod+Alt+Enter",
+    "askAgent": "Mod+Enter",
     "discardComment": "Escape",
     "toggleSidebar": "Mod+Shift+b",
   },
@@ -293,8 +296,8 @@ counts; when it is `false`, Codiff hides those changes from the working-tree rev
 Set `settings.editorCommand` to customize file opening. Use `{file}` for the selected file,
 `{line}` for its line number when available, and `{repo}` for the repository root, for example
 `"subl \"{repo}\" \"{file}\""`.
-Set `settings.commentCommand` to send a local review comment to a command with
-<kbd>Mod</kbd>+<kbd>Enter</kbd>; see [What this fork adds](#what-this-fork-adds) for the
+Set `settings.commentCommand` to send a review comment to the agent session that opened Codiff
+with **Ask**; see [What this fork adds](#what-this-fork-adds) for the
 placeholders it accepts.
 Set `settings.sidebarPosition` to `left` or `right` to choose which side of the desktop window shows
 the file sidebar.

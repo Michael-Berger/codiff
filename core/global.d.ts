@@ -91,6 +91,9 @@ declare global {
       onCopyPendingCommentsRequest: (callback: () => string | Promise<string>) => () => void;
       onFindInDiffs: (callback: () => void) => () => void;
       onKeyboardLayoutChanged: (callback: (layout: NativeKeyboardLayout) => void) => () => void;
+      onLaunchOptionsChanged: (
+        callback: (launchOptions: CodiffLaunchOptions) => void,
+      ) => () => void;
       onMarkdownDocumentChanged: (
         callback: (
           change:

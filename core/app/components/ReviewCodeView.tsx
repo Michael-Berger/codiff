@@ -50,7 +50,11 @@ import claudeIconUrl from '../../assets/claude.svg';
 import codexIconUrl from '../../assets/codex.svg';
 import opencodeIconUrl from '../../assets/opencode.svg';
 import piIconUrl from '../../assets/pi.svg';
-import { getShortcutLabel, matchesShortcut } from '../../config/keymap.ts';
+import {
+  getShortcutLabel,
+  matchesShortcut,
+  matchesSingleActionShortcut,
+} from '../../config/keymap.ts';
 import type { CodiffDiffStyle, CodiffKeymap } from '../../config/types.ts';
 import type {
   CodeViewInstance,
@@ -937,7 +941,7 @@ function SourceDescriptionBody({
 
   const handleEditKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (!keymap || !matchesShortcut(event, keymap, 'submitComment') || !canSaveEdit) {
+      if (!keymap || !matchesSingleActionShortcut(event, keymap) || !canSaveEdit) {
         return;
       }
 
@@ -1481,6 +1485,8 @@ function ReviewCommentEditor({
 
   const draftComment = withCommentBody(comment, draft);
   const canAskCodex = onAskCodex != null && canAskCodexForComment(draftComment);
+  const supportsAsk = supportsSendComment || onAskCodex != null;
+  const canAsk = supportsSendComment ? canSendComment(draftComment) : canAskCodex;
   const commentCanSubmit = canSubmitComment(draftComment);
   const canEditExistingComment =
     supportsReviewCommentActions && comment.isReadOnly && comment.canEdit === true;
@@ -1574,6 +1580,8 @@ function ReviewCommentEditor({
     }
     (document.activeElement as HTMLElement | null)?.blur();
   }, [comment.id, flushDraft, onSendComment]);
+
+  const handleAsk = supportsSendComment ? handleSendComment : handleAskCodex;
 
   const handleStartEdit = useCallback(() => {
     if (!canEditExistingComment || editSubmitting) {
@@ -1672,7 +1680,7 @@ function ReviewCommentEditor({
 
   const handleEditKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (!matchesShortcut(event, keymap, 'submitComment') || !canSaveEdit) {
+      if (!matchesSingleActionShortcut(event, keymap) || !canSaveEdit) {
         return;
       }
 
@@ -1685,7 +1693,20 @@ function ReviewCommentEditor({
 
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (matchesShortcut(event, keymap, 'submitComment')) {
+      if (supportsAsk && matchesShortcut(event, keymap, 'askAgent')) {
+        if (canAsk) {
+          event.preventDefault();
+          event.stopPropagation();
+          handleAsk();
+        }
+        return;
+      }
+
+      if (
+        supportsAsk
+          ? matchesShortcut(event, keymap, 'submitComment')
+          : matchesSingleActionShortcut(event, keymap)
+      ) {
         if (supportsReviewCommentActions) {
           if (commentCanSubmit) {
             event.preventDefault();
@@ -1697,20 +1718,7 @@ function ReviewCommentEditor({
 
         event.preventDefault();
         event.stopPropagation();
-        if (supportsSendComment) {
-          handleSendComment();
-        } else {
-          handleAddComment();
-        }
-        return;
-      }
-
-      if (matchesShortcut(event, keymap, 'askAgent')) {
-        if (canAskCodex) {
-          event.preventDefault();
-          event.stopPropagation();
-          handleAskCodex();
-        }
+        handleAddComment();
         return;
       }
 
@@ -1730,19 +1738,18 @@ function ReviewCommentEditor({
       }
     },
     [
-      canAskCodex,
+      canAsk,
       commentCanSubmit,
       comment.id,
       comment.isReadOnly,
       draft,
       handleAddComment,
-      handleAskCodex,
-      handleSendComment,
+      handleAsk,
       handleSubmitComment,
       keymap,
       onDeleteComment,
+      supportsAsk,
       supportsReviewCommentActions,
-      supportsSendComment,
     ],
   );
   return (
@@ -1756,7 +1763,7 @@ function ReviewCommentEditor({
         <div className="review-comment-body">
           <div
             className={`review-comment-header${
-              (supportsReviewCommentActions && !comment.isReadOnly) ||
+              !comment.isReadOnly ||
               canEditExistingComment ||
               comment.canDelete ||
               editingExistingComment
@@ -1806,14 +1813,19 @@ function ReviewCommentEditor({
                 <X aria-hidden className="review-comment-delete-icon" size={14} weight="bold" />
               </button>
             ) : null}
-            {!comment.isReadOnly && onAskCodex ? (
+            {supportsSendComment && !comment.isReadOnly && comment.sentAt != null ? (
+              <span className="review-comment-sent-marker" title="Sent">
+                <Check aria-hidden className="review-comment-sent-icon" size={13} weight="bold" />
+                Sent
+              </span>
+            ) : !comment.isReadOnly && supportsAsk ? (
               <button
                 className="review-comment-action"
-                disabled={!canAskCodex}
-                onClick={handleAskCodex}
+                disabled={!canAsk}
+                onClick={handleAsk}
                 title={
-                  canAskCodex
-                    ? `Ask ${agentLabel} (${getShortcutLabel(keymap, 'askAgent')})`
+                  canAsk
+                    ? `Ask ${agentLabel}${supportsSendComment ? ' in your session' : ''} (${getShortcutLabel(keymap, 'askAgent')})`
                     : `Write a note before asking ${agentLabel}`
                 }
                 type="button"
@@ -1828,19 +1840,15 @@ function ReviewCommentEditor({
                 Ask
               </button>
             ) : null}
-            {supportsSendComment && !comment.isReadOnly && comment.sentAt != null ? (
-              <span className="review-comment-sent-marker" title="Sent">
-                <Check aria-hidden className="review-comment-sent-icon" size={13} weight="bold" />
-                Sent
-              </span>
-            ) : null}
-            {supportsReviewCommentActions && !comment.isReadOnly ? (
+            {!comment.isReadOnly ? (
               <button
                 className="review-comment-action"
                 disabled={!commentCanSubmit}
-                onClick={handleSubmitComment}
+                onClick={supportsReviewCommentActions ? handleSubmitComment : handleAddComment}
                 title={
-                  commentCanSubmit ? 'Submit review comment' : 'Write a note before commenting'
+                  commentCanSubmit
+                    ? `${supportsReviewCommentActions ? 'Submit review comment' : 'Add comment'} (${getShortcutLabel(keymap, supportsAsk ? 'submitComment' : 'askAgent')})`
+                    : 'Write a note before commenting'
                 }
                 type="button"
               >
@@ -1939,7 +1947,11 @@ function ReviewCommentEditor({
                 onChange={handleChange}
                 onFocus={handleFocus}
                 onKeyDown={handleKeyDown}
-                placeholder="Write a review comment…"
+                placeholder={
+                  supportsAsk
+                    ? 'Ask a question or write a review comment…'
+                    : 'Write a review comment…'
+                }
                 ref={comment.id === focusCommentId ? focusEditorRef : undefined}
                 spellCheck
                 value={draft}
