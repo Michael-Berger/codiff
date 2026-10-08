@@ -1644,3 +1644,12 @@ test('parseArguments reads base...target and base..target as a range', async () 
     expect(parseArguments(['nope...nada']).range).toBeUndefined();
   });
 });
+
+test('codiff update refuses to update the fork', async () => {
+  await expect(
+    execFileAsync(process.execPath, [resolve('bin/codiff.js'), 'update'], { encoding: 'utf8' }),
+  ).rejects.toMatchObject({
+    code: 1,
+    stderr: 'codiff: updates are disabled in this fork.\n',
+  });
+});
