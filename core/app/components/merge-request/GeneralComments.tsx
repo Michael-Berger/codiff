@@ -11,7 +11,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react';
-import { matchesShortcut } from '../../../config/keymap.ts';
+import { matchesSingleActionShortcut } from '../../../config/keymap.ts';
 import type { CodiffKeymap } from '../../../config/types.ts';
 import type {
   GitIdentity,
@@ -171,7 +171,7 @@ function GeneralCommentCard({
   const editorRef = useRef<MarkdownEditorHandle | null>(null);
   const handleEditKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (!matchesShortcut(event, keymap, 'submitComment') || !canSaveEdit) {
+      if (!matchesSingleActionShortcut(event, keymap) || !canSaveEdit) {
         return;
       }
 
@@ -522,7 +522,7 @@ function GeneralCommentComposer({
   const canSubmit = !disabled && !submitting && Boolean(draft.trim());
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (!matchesShortcut(event, keymap, 'submitComment') || !canSubmit) {
+      if (!matchesSingleActionShortcut(event, keymap) || !canSubmit) {
         return;
       }
 
