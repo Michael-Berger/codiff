@@ -11,6 +11,7 @@ import type {
   WalkthroughStop,
 } from '../types.ts';
 import { getDiffLineCount, getVisibleDiffSections, setFocusedSectionContext } from './diff.ts';
+import { alignPatchToHunkSubset } from './hunk-subset.ts';
 import {
   extractPatchHunks,
   filterPatchToHunkIds,
@@ -450,6 +451,38 @@ const focusSignature = (section: DiffSection, hunkIds: ReadonlyArray<string>) =>
  * Return the changed-file view a walkthrough stop should render for one live diff
  * section. The patch contains exactly the provided hunk ids, in that order.
  */
+const getPullRequestContextBounds = (section: DiffSection, hunkIds: ReadonlyArray<string>) => {
+  if (section.kind !== 'pull-request' || !section.oldFile || !section.newFile) {
+    return null;
+  }
+
+  const first = getHunkOrdinal(section.id, hunkIds[0] ?? '');
+  if (
+    first == null ||
+    !hunkIds.every((id, index) => getHunkOrdinal(section.id, id) === first + index)
+  ) {
+    return null;
+  }
+
+  const sourceHunks = extractPatchHunks(section.patch);
+  const previous = sourceHunks[first - 2];
+  const next = sourceHunks[first + hunkIds.length - 1];
+  if (!previous && !next) {
+    return null;
+  }
+
+  return {
+    end: next && {
+      addition: next.additionStart - Number(next.additionCount > 0),
+      deletion: next.deletionStart - Number(next.deletionCount > 0),
+    },
+    start: previous && {
+      addition: previous.additionStart + Math.max(previous.additionCount - 1, 0),
+      deletion: previous.deletionStart + Math.max(previous.deletionCount - 1, 0),
+    },
+  };
+};
+
 export const focusChangedFileForHunks = (
   file: ChangedFile,
   section: DiffSection,
@@ -496,11 +529,15 @@ export const focusChangedFileForHunks = (
   }
 
   const signature = focusSignature(section, hunkIds);
+  const contextBounds = getPullRequestContextBounds(section, hunkIds);
+  const hunkSubset =
+    !contextBounds && new Set(hunkIds).size < extractPatchHunks(section.patch).length;
   const focusedSection = {
     ...section,
+    hunkSubset,
     newFile: undefined,
     oldFile: undefined,
-    patch: focusedPatch,
+    patch: hunkSubset ? alignPatchToHunkSubset(focusedPatch) : focusedPatch,
     summary: {
       ...section.summary,
       fingerprint: signature,
@@ -508,32 +545,12 @@ export const focusChangedFileForHunks = (
     },
   };
 
-  if (section.kind === 'pull-request' && section.oldFile && section.newFile) {
-    const sourceHunks = extractPatchHunks(section.patch);
-    const first = getHunkOrdinal(section.id, hunkIds[0] ?? '');
-    if (
-      first != null &&
-      hunkIds.every((id, index) => getHunkOrdinal(section.id, id) === first + index)
-    ) {
-      const previous = sourceHunks[first - 2];
-      const next = sourceHunks[first + hunkIds.length - 1];
-      if (previous || next) {
-        setFocusedSectionContext(
-          focusedSection,
-          { newFile: section.newFile, oldFile: section.oldFile },
-          {
-            end: next && {
-              addition: next.additionStart - Number(next.additionCount > 0),
-              deletion: next.deletionStart - Number(next.deletionCount > 0),
-            },
-            start: previous && {
-              addition: previous.additionStart + Math.max(previous.additionCount - 1, 0),
-              deletion: previous.deletionStart + Math.max(previous.deletionCount - 1, 0),
-            },
-          },
-        );
-      }
-    }
+  if (contextBounds && section.oldFile && section.newFile) {
+    setFocusedSectionContext(
+      focusedSection,
+      { newFile: section.newFile, oldFile: section.oldFile },
+      contextBounds,
+    );
   }
 
   return {
