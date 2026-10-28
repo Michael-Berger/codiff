@@ -1,10 +1,11 @@
+import type { FileDiffMetadata } from '@pierre/diffs';
 import { expect, test } from 'vite-plus/test';
 import {
   getWalkthroughBlockScrollTarget,
   getWalkthroughKeyboardForwardIndex,
   getWalkthroughNavigationKeyDirection,
 } from '../app/components/walkthrough/NarrativeWalkthroughView.tsx';
-import { parseSectionDiffWithOptions } from '../lib/diff.ts';
+import { loadSectionContents, parseSectionDiffWithOptions } from '../lib/diff.ts';
 import {
   buildCommitModel,
   buildGenericCommitModel,
@@ -953,6 +954,133 @@ test('focusChangedFileForHunks uses exact hunk ids instead of broad anchor range
   expect(focused!.sections[0].patch).toContain('database.commit_order()');
   expect(focused!.sections[0].patch).not.toContain('favorite.drag()');
   expect(focused!.sections[0].patch).not.toContain('favorite.row_count()');
+});
+
+const lineCountChangingFile = (): ChangedFile => {
+  const oldLines = Array.from({ length: 30 }, (_, index) => `line ${index + 1}`);
+  const newLines = [...oldLines];
+  newLines.splice(24, 2, 'merged 25');
+  newLines.splice(13, 1, 'first 14', 'second 14', 'third 14');
+  newLines.splice(3, 0, 'added a', 'added b');
+  return {
+    fingerprint: 'line-counts',
+    path: 'counts.txt',
+    sections: [
+      {
+        binary: false,
+        id: 'counts.txt:unstaged',
+        kind: 'unstaged',
+        loadState: 'ready',
+        newFile: { cacheKey: 'new', contents: `${newLines.join('\n')}\n`, name: 'counts.txt' },
+        oldFile: { cacheKey: 'old', contents: `${oldLines.join('\n')}\n`, name: 'counts.txt' },
+        patch: [
+          'diff --git a/counts.txt b/counts.txt',
+          'index 1111111..2222222 100644',
+          '--- a/counts.txt',
+          '+++ b/counts.txt',
+          '@@ -1,6 +1,8 @@',
+          ' line 1',
+          ' line 2',
+          ' line 3',
+          '+added a',
+          '+added b',
+          ' line 4',
+          ' line 5',
+          ' line 6',
+          '@@ -11,7 +13,9 @@ line 10',
+          ' line 11',
+          ' line 12',
+          ' line 13',
+          '-line 14',
+          '+first 14',
+          '+second 14',
+          '+third 14',
+          ' line 15',
+          ' line 16',
+          ' line 17',
+          '@@ -22,8 +26,7 @@ line 21',
+          ' line 22',
+          ' line 23',
+          ' line 24',
+          '-line 25',
+          '-line 26',
+          '+merged 25',
+          ' line 27',
+          ' line 28',
+          ' line 29',
+          ' line 30',
+          '',
+        ].join('\n'),
+      },
+    ],
+    status: 'modified',
+  };
+};
+
+const sideRange = (start: number, count: number) => {
+  const from = count === 0 ? start : start - 1;
+  return [from, from + count] as const;
+};
+
+const getMismatchedContext = (fileDiff: FileDiffMetadata) => {
+  const mismatches: Array<string> = [];
+  let additionEnd = 0;
+  let deletionEnd = 0;
+  const compare = (additionTo: number, deletionTo: number) => {
+    const additions = fileDiff.additionLines.slice(additionEnd, additionTo).join('');
+    const deletions = fileDiff.deletionLines.slice(deletionEnd, deletionTo).join('');
+    if (additions !== deletions) {
+      mismatches.push(`new ${additionEnd + 1}-${additionTo}, old ${deletionEnd + 1}-${deletionTo}`);
+    }
+  };
+  for (const { additionCount, additionStart, deletionCount, deletionStart } of fileDiff.hunks) {
+    const [additionFrom, additionTo] = sideRange(additionStart, additionCount);
+    const [deletionFrom, deletionTo] = sideRange(deletionStart, deletionCount);
+    compare(additionFrom, deletionFrom);
+    additionEnd = additionTo;
+    deletionEnd = deletionTo;
+  }
+  compare(fileDiff.additionLines.length, fileDiff.deletionLines.length);
+  return mismatches;
+};
+
+test('focusChangedFileForHunks expands a subset of hunks into matching context', async () => {
+  const file = lineCountChangingFile();
+  const section = file.sections[0];
+  const subsets = [['h1'], ['h2'], ['h3'], ['h1', 'h3'], ['h2', 'h3'], ['h1', 'h2', 'h3']];
+  for (const ordinals of subsets) {
+    const focused = focusChangedFileForHunks(
+      file,
+      section,
+      ordinals.map((ordinal) =>
+        hunk({
+          added: 1,
+          deleted: 1,
+          display: `counts.txt ${ordinal}`,
+          id: `${section.id}:${ordinal}`,
+          path: file.path,
+          sectionId: section.id,
+          status: 'modified',
+        }),
+      ),
+    )!;
+    const focusedSection = focused.sections[0];
+    await loadSectionContents(focused, focusedSection, async () => ({
+      newFile: section.newFile!,
+      oldFile: section.oldFile!,
+    }));
+    const fileDiff = parseSectionDiffWithOptions(focused, focusedSection, true);
+
+    expect(fileDiff.isPartial).toBe(false);
+
+    expect({ mismatches: getMismatchedContext(fileDiff), ordinals }).toEqual({
+      mismatches: [],
+      ordinals,
+    });
+    expect(fileDiff.hunks.map((fileHunk) => fileHunk.additionStart)).toEqual(
+      ordinals.map((ordinal) => ({ h1: 1, h2: 13, h3: 26 })[ordinal]),
+    );
+  }
 });
 
 test('focusChangedFileForHunks keeps deferred hunk sections visible and loadable', () => {

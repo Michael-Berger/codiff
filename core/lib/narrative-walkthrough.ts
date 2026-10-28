@@ -11,7 +11,9 @@ import type {
   WalkthroughStop,
 } from '../types.ts';
 import { getDiffLineCount, getVisibleDiffSections } from './diff.ts';
+import { alignPatchToHunkSubset } from './hunk-subset.ts';
 import {
+  extractPatchHunks,
   filterPatchToHunkIds,
   getHunkOrdinal,
   getSectionWalkthroughHunks,
@@ -490,6 +492,7 @@ export const focusChangedFileForHunks = (
   }
 
   const signature = focusSignature(section, hunkIds);
+  const hunkSubset = new Set(hunkIds).size < extractPatchHunks(section.patch).length;
 
   return {
     ...file,
@@ -497,9 +500,10 @@ export const focusChangedFileForHunks = (
     sections: [
       {
         ...section,
+        hunkSubset,
         newFile: undefined,
         oldFile: undefined,
-        patch: focusedPatch,
+        patch: hunkSubset ? alignPatchToHunkSubset(focusedPatch) : focusedPatch,
         summary: {
           ...section.summary,
           fingerprint: signature,

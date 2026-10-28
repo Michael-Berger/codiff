@@ -7,6 +7,7 @@ import {
 } from '@pierre/diffs';
 import type { ChangedFile, DiffSection } from '../types.ts';
 import type { DiffLineCount } from './app-types.ts';
+import { getHunkSubsetContents } from './hunk-subset.ts';
 
 export const getItemId = (section: DiffSection) => `diff:${section.id}`;
 
@@ -77,7 +78,14 @@ export const loadSectionContents = (
   }
 
   const promise = load(file, section)
-    .then((files) => {
+    .then((loadedFiles) => {
+      const files = section.hunkSubset
+        ? getHunkSubsetContents(
+            section.patch,
+            loadedFiles,
+            section.summary?.fingerprint ?? section.id,
+          )
+        : loadedFiles;
       // CodeView hydrates the cached partial object in place once these
       // contents reach it, so cache hits keep returning the hydrated diff.
       // The hydrated re-parse branch in `parseSectionDiffWithOptions` covers
