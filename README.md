@@ -3,8 +3,8 @@
 > [!NOTE]
 > **This is a fork of [nkzw-tech/codiff](https://github.com/nkzw-tech/codiff).** It adds one
 > feature: review comments can be sent straight to a running coding agent instead of copied to the
-> clipboard. It also never updates itself, since an upstream update would replace the fork. See
-> [What this fork adds](#what-this-fork-adds).
+> clipboard. It also never updates itself, since an upstream update would replace the fork, and it
+> carries a few bug fixes upstream does not have yet. See [What this fork adds](#what-this-fork-adds).
 
 Codiff is a beautiful, minimal, local diff viewer for reviewing Git changes and committing them.
 
@@ -134,6 +134,15 @@ The fork never checks for or installs updates: upstream releases would replace i
 fork's changes. The `checkForUpdates` setting has no effect, the Check for Updates menu item is
 gone, and `codiff update` exits with an error. To update, run `git pull` and then
 `contrib/install-fork` again.
+
+### Bug fixes not in upstream
+
+- **Renamed files:** in commit, range, and branch reviews, a renamed file diffs against its old
+  path, so only its edits show instead of the whole file as added.
+- **Expanding context in walkthroughs:** in a walkthrough stop that shows only some of a file's
+  hunks, expanding unchanged lines no longer blanks the window. The stop's old side is the old file
+  with the file's other hunks applied, so old-side line numbers in such a stop can differ from the
+  original file; new-side line numbers are exact.
 
 ## Why Codiff
 
