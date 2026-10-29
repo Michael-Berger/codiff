@@ -1851,7 +1851,7 @@ test('codiff-app prints version and exits 0', async () => {
   const { stdout } = await execFileAsync(resolve('bin/codiff-app'), ['--version'], {
     encoding: 'utf8',
   });
-  expect(stdout).toMatch(/^codiff v\d+\.\d+\.\d+-fork\n$/);
+  expect(stdout).toMatch(/^codiff v\d+\.\d+\.\d+-fork(?:\.\d+)?\+[0-9a-f]{7,}(?:\.dirty)?\n$/);
 });
 
 test('codiff --walkthrough-guide prints the guide and embedded schema, then exits 0', async () => {
@@ -1911,5 +1911,6 @@ test('codiff --version reports the fork version', async () => {
     },
   );
 
-  expect(stdout).toBe(`codiff v${version}-fork\n`);
+  expect(stdout.startsWith(`codiff v${version}-fork`)).toBe(true);
+  expect(stdout).toMatch(/-fork(?:\.\d+)?\+[0-9a-f]{7,}(?:\.dirty)?\n$/);
 });

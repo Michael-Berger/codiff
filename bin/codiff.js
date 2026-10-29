@@ -129,13 +129,10 @@ const run = async () => {
 
   const parsedArguments = parseArguments(process.argv.slice(2));
 
-  if (parsedArguments.help) {
-    process.stdout.write(formatHelpText(`${packageJson.version}-fork`));
-    return;
-  }
-
-  if (parsedArguments.version) {
-    process.stdout.write(`codiff v${packageJson.version}-fork\n`);
+  if (parsedArguments.help || parsedArguments.version) {
+    const { getForkVersion } = require(resolve(root, 'electron/fork-version.cjs'));
+    const version = getForkVersion(root, packageJson.version);
+    process.stdout.write(parsedArguments.help ? formatHelpText(version) : `codiff v${version}\n`);
     return;
   }
 

@@ -88,6 +88,7 @@ const { createDefinitionSearchCoordinator } = require('./definition-search.cjs')
 const { createTerminalHelper } = require('./main/terminal-helper.cjs');
 const { createWalkthroughLaunchController } = require('./main/walkthrough-launch.cjs');
 const { createWindowRevealController } = require('./window-reveal.cjs');
+const { getForkVersion } = require('./fork-version.cjs');
 const {
   MIN_WINDOW_HEIGHT,
   MIN_WINDOW_WIDTH,
@@ -1421,7 +1422,7 @@ if (squirrelStartup || !lock) {
 } else {
   app.setName('Codiff');
   app.setAboutPanelOptions({
-    applicationVersion: `${app.getVersion()}-fork`,
+    applicationVersion: getForkVersion(app.getAppPath(), app.getVersion()),
     version: app.getVersion(),
   });
 

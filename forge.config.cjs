@@ -1,9 +1,11 @@
 // @ts-check
 
 /* eslint-disable @typescript-eslint/no-require-imports, no-undef */
-const { copyFile, mkdir } = require('node:fs/promises');
+const { copyFile, mkdir, writeFile } = require('node:fs/promises');
 const { existsSync } = require('node:fs');
 const { dirname, join } = require('node:path');
+const { FORK_VERSION_STAMP, readGitForkVersion } = require('./electron/fork-version.cjs');
+const { version: baseVersion } = require('./package.json');
 
 const electronCachePath = process.env.ELECTRON_CACHE || join(__dirname, '.cache/electron');
 const entitlementsPath = join(__dirname, 'electron/entitlements.plist');
@@ -58,6 +60,14 @@ module.exports = {
 
       await mkdir(dirname(destination), { recursive: true });
       await copyFile(source, destination);
+
+      const version = readGitForkVersion(__dirname, baseVersion);
+      if (version) {
+        await writeFile(
+          join(buildPath, FORK_VERSION_STAMP),
+          `${JSON.stringify({ version }, null, 2)}\n`,
+        );
+      }
     },
     prePackage: async (forgeConfig, platform) => {
       if (platform !== 'darwin' || !macAssetCatalogPath) {

@@ -20,6 +20,30 @@ codiff_version() {
   sed -n 's/^  "version": "\([^"]*\)".*/\1/p' "$script_dir/../package.json"
 }
 
+# Mirrors electron/fork-version.cjs.
+codiff_fork_version() {
+  base="$(codiff_version)"
+  stamp="$script_dir/../fork-build.json"
+  if [ -f "$stamp" ]; then
+    stamped="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$stamp")"
+    if [ -n "$stamped" ]; then
+      printf '%s' "$stamped"
+      return
+    fi
+  fi
+  repo="$script_dir/.."
+  if [ -e "$repo/.git" ] && sha="$(git -C "$repo" rev-parse --short HEAD 2>/dev/null)"; then
+    count="$(git -C "$repo" rev-list --count "v$base..HEAD" 2>/dev/null || true)"
+    dirty=""
+    if [ -n "$(git -C "$repo" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+      dirty=".dirty"
+    fi
+    printf '%s-fork%s+%s%s' "$base" "${count:+.$count}" "$sha" "$dirty"
+    return
+  fi
+  printf '%s-fork' "$base"
+}
+
 # major.minor.patch integer compare; any other shape is "not newer".
 is_newer_version() {
   case "$1$2" in *[!0-9.]*|'') return 1 ;; esac
@@ -182,12 +206,12 @@ print_update_notice() {
 }
 
 show_help() {
-  version="$(codiff_version)"
+  version="$(codiff_fork_version)"
   blue_bold="$(printf '\033[1;34m')"
   gray="$(printf '\033[90m')"
   reset="$(printf '\033[0m')"
 
-  printf '%s\n' "${blue_bold}codiff v${version}-fork${reset} ${gray}A fast local diff viewer.${reset}"
+  printf '%s\n' "${blue_bold}codiff v${version}${reset} ${gray}A fast local diff viewer.${reset}"
   printf '\n'
   printf '%s\n' "${blue_bold}Usage:${reset} ${gray}codiff [options] [<ref> | <pr> | <url>] [path]${reset}"
   printf '\n'
@@ -490,7 +514,7 @@ for arg in "$@"; do
       exit 0
       ;;
     --version|-v)
-      printf 'codiff v%s-fork\n' "$(codiff_version)"
+      printf 'codiff v%s\n' "$(codiff_fork_version)"
       print_update_notice
       exit 0
       ;;
