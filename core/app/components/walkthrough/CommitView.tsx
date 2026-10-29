@@ -4,6 +4,7 @@ import { GitBranchIcon as GitBranch } from '@phosphor-icons/react/GitBranch';
 import { XIcon as X } from '@phosphor-icons/react/X';
 import type { Terminal } from 'ghostty-web';
 import { useEffect, useRef, useState } from 'react';
+import { renderInlineMarkdown } from '../../../lib/markdown.tsx';
 import {
   changeTypeLabel,
   type CommitFile,
@@ -215,7 +216,9 @@ function StageFileRow({
       <CommitCheck state={on ? 'on' : 'off'} />
       <span className="wt-stage-file-main">
         <PathLabel path={file.path} />
-        {file.note ? <span className="wt-stage-file-note">{file.note}</span> : null}
+        {file.note ? (
+          <span className="wt-stage-file-note">{renderInlineMarkdown(file.note)}</span>
+        ) : null}
       </span>
       <ChangeTag file={file} />
       <WalkthroughLineCount added={file.added} deleted={file.deleted} />

@@ -282,6 +282,24 @@
   font-style: normal;
   font-weight: 600;
 }
+.walkthrough-hunk-note {
+  background: var(--file-bg);
+  box-shadow: inset 3px 0 0 var(--tree-selection-focus);
+  color: var(--text);
+  font: 13px/1.5 var(--font-sans);
+  padding: 8px 16px 8px 19px;
+  text-wrap: pretty;
+}
+.walkthrough-hunk-note code,
+.codiff-file-note code,
+.wt-stage-file-note code {
+  background: var(--inline-code-bg);
+  border-radius: 24px;
+  corner-shape: squircle;
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  padding: 1px 4px;
+}
 
 /* ---- Importance pill + stage header --------------------------------------- */
 .wt-stage {
