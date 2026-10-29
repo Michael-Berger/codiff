@@ -428,15 +428,77 @@ export const resolveWalkthroughHunkRuns = (
   return runs;
 };
 
-export const getWalkthroughRunNote = (
+export type WalkthroughInlineNote = {
+  body: string;
+  lineNumber: number;
+  side: 'additions' | 'deletions';
+};
+
+export type WalkthroughRunNotes = {
+  header?: string;
+  inline: ReadonlyArray<WalkthroughInlineNote>;
+};
+
+type PatchHunk = ReturnType<typeof extractPatchHunks>[number];
+
+// A hunk note sits under the hunk's first block of changed lines.
+const getHunkNoteAnchor = ({
+  additionStart,
+  deletionStart,
+  patch,
+}: PatchHunk): Omit<WalkthroughInlineNote, 'body'> | null => {
+  let oldLine = deletionStart;
+  let newLine = additionStart;
+  let anchor: Omit<WalkthroughInlineNote, 'body'> | null = null;
+  for (const line of patch.split('\n').slice(1)) {
+    if (line.startsWith('+')) {
+      anchor = { lineNumber: newLine, side: 'additions' };
+      newLine += 1;
+    } else if (line.startsWith('-')) {
+      if (anchor?.side !== 'additions') {
+        anchor = { lineNumber: oldLine, side: 'deletions' };
+      }
+      oldLine += 1;
+    } else if (line === '' || line.startsWith('\\')) {
+      continue;
+    } else if (anchor) {
+      return anchor;
+    } else {
+      oldLine += 1;
+      newLine += 1;
+    }
+  }
+  return anchor;
+};
+
+export const getWalkthroughRunNotes = (
   item: WalkthroughHunkGroup,
   run: WalkthroughHunkRun,
-): string | undefined => {
-  const hunkIds = new Set(run.hunks.map((hunk) => hunk.id));
-  const notes = (item.notes ?? [])
-    .filter((note) => hunkIds.has(note.hunkId))
-    .map((note) => note.body);
-  return notes.length > 0 ? notes.join(' ') : undefined;
+  focusedSection: DiffSection | undefined,
+): WalkthroughRunNotes => {
+  const notesByHunkId = new Map<string, Array<string>>();
+  for (const note of item.notes ?? []) {
+    notesByHunkId.set(note.hunkId, [...(notesByHunkId.get(note.hunkId) ?? []), note.body]);
+  }
+
+  const patchHunks =
+    focusedSection && !run.hunks.some(isSyntheticWalkthroughHunk)
+      ? extractPatchHunks(focusedSection.patch)
+      : [];
+  const canAnchor = patchHunks.length === run.hunks.length;
+  const header: Array<string> = [];
+  const inline: Array<WalkthroughInlineNote> = [];
+  run.hunks.forEach((hunk, index) => {
+    const bodies = notesByHunkId.get(hunk.id) ?? [];
+    const anchor = canAnchor && bodies.length > 0 ? getHunkNoteAnchor(patchHunks[index]) : null;
+    if (anchor) {
+      inline.push(...bodies.map((body) => ({ ...anchor, body })));
+    } else {
+      header.push(...bodies);
+    }
+  });
+
+  return { header: header.length > 0 ? header.join(' ') : undefined, inline };
 };
 
 const focusSignature = (section: DiffSection, hunkIds: ReadonlyArray<string>) =>

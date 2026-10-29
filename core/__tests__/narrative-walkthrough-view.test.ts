@@ -17,7 +17,7 @@ import {
   getUncoveredWalkthroughFileLineItems,
   getUncoveredWalkthroughFiles,
   getUncoveredWalkthroughReviewIdentity,
-  getWalkthroughRunNote,
+  getWalkthroughRunNotes,
   isWalkthroughCommittable,
   resolveWalkthroughHunkFile,
   resolveWalkthroughHunkRuns,
@@ -1254,7 +1254,7 @@ test('resolveWalkthroughHunkRuns splits backward hunks while preserving authored
   expect(runs.flatMap((run) => run.hunks)).toEqual(hunks);
 });
 
-test('getWalkthroughRunNote combines header notes for grouped hunks', () => {
+test('getWalkthroughRunNotes anchors each note under its hunk', () => {
   const file = multiHunkFile();
   const section = file.sections[0];
   const item = {
@@ -1293,9 +1293,79 @@ test('getWalkthroughRunNote combines header notes for grouped hunks', () => {
     ],
   };
   const runs = resolveWalkthroughHunkRuns(item, [file]);
+  const focused = focusChangedFileForHunks(file, section, runs[0].hunks)!;
 
   expect(runs).toHaveLength(1);
-  expect(getWalkthroughRunNote(item, runs[0])).toBe(
-    'This line turns the widget into a reorderable list. This hunk persists the final order.',
-  );
+  expect(getWalkthroughRunNotes(item, runs[0], focused.sections[0])).toEqual({
+    header: undefined,
+    inline: [
+      {
+        body: 'This line turns the widget into a reorderable list.',
+        lineNumber: 2,
+        side: 'additions',
+      },
+      { body: 'This hunk persists the final order.', lineNumber: 12, side: 'additions' },
+    ],
+  });
+});
+
+test('getWalkthroughRunNotes anchors a deletion-only hunk on the old side', () => {
+  const file = lineCountChangingFile();
+  const section = {
+    ...file.sections[0],
+    patch: [
+      '--- a/counts.txt',
+      '+++ b/counts.txt',
+      '@@ -3,4 +3,2 @@',
+      ' line 3',
+      '-line 4',
+      '-line 5',
+      ' line 6',
+      '',
+    ].join('\n'),
+  };
+  const noted = hunk({
+    added: 0,
+    deleted: 2,
+    display: 'counts.txt:4',
+    id: `${section.id}:h1`,
+    path: file.path,
+    sectionId: section.id,
+    status: 'modified',
+  });
+  const item = {
+    ...group({ hunks: [noted], id: 'removal' }),
+    notes: [{ body: 'Drops the `legacy` rows.', hunkId: noted.id }],
+  };
+  const [run] = resolveWalkthroughHunkRuns(item, [{ ...file, sections: [section] }]);
+
+  expect(getWalkthroughRunNotes(item, run, section).inline).toEqual([
+    { body: 'Drops the `legacy` rows.', lineNumber: 5, side: 'deletions' },
+  ]);
+});
+
+test('getWalkthroughRunNotes keeps notes in the header when the hunk cannot be anchored', () => {
+  const file = multiHunkFile();
+  const section = { ...file.sections[0], loadState: 'deferred' as const };
+  const noted = hunk({
+    added: 1,
+    deleted: 1,
+    display: 'database_search.py:2',
+    id: `${section.id}:h1`,
+    path: file.path,
+    sectionId: section.id,
+    status: 'modified',
+  });
+  const item = {
+    ...group({ hunks: [noted], id: 'deferred' }),
+    notes: [{ body: 'Loaded on demand.', hunkId: noted.id }],
+  };
+  const deferredFile = { ...file, sections: [section] };
+  const [run] = resolveWalkthroughHunkRuns(item, [deferredFile]);
+  const focused = focusChangedFileForHunks(deferredFile, section, run.hunks)!;
+
+  expect(getWalkthroughRunNotes(item, run, focused.sections[0])).toEqual({
+    header: 'Loaded on demand.',
+    inline: [],
+  });
 });

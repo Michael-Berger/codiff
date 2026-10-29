@@ -43,12 +43,18 @@ type WalkthroughHeaderAnnotationMetadata = {
   type: 'walkthrough-header';
 };
 
+export type WalkthroughHunkNoteAnnotationMetadata = {
+  body: string;
+  type: 'walkthrough-hunk-note';
+};
+
 export type ReviewAnnotationMetadata =
   | CodeQualityAnnotationMetadata
   | ImagePreviewAnnotationMetadata
   | MarkdownPreviewAnnotationMetadata
   | ReviewCommentAnnotationMetadata
-  | WalkthroughHeaderAnnotationMetadata;
+  | WalkthroughHeaderAnnotationMetadata
+  | WalkthroughHunkNoteAnnotationMetadata;
 
 export type CodeViewInstance = NonNullable<
   ReturnType<CodeViewHandle<ReviewAnnotationMetadata, undefined>['getInstance']>

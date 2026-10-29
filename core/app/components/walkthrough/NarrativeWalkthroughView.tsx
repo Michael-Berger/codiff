@@ -15,12 +15,13 @@ import {
   formatWalkthroughFileList,
   getUncoveredWalkthroughFiles,
   getUncoveredWalkthroughReviewIdentity,
-  getWalkthroughRunNote,
+  getWalkthroughRunNotes,
   isWalkthroughCommittable,
   resolveWalkthroughHunkRuns,
   walkthroughItemPaths,
   walkthroughItemTitleFallback,
   walkthroughFileName,
+  type WalkthroughInlineNote,
   type WalkthroughView,
   type WalkthroughStopView,
 } from '../../../lib/narrative-walkthrough.ts';
@@ -41,6 +42,7 @@ import type { NarrativeNavigation } from './useNarrativeNavigation.ts';
 
 type FocusedRunDiff = {
   file: ChangedFile;
+  hunkNotes: ReadonlyArray<WalkthroughInlineNote>;
   note?: string;
   reviewIdentity: ReviewIdentity;
 };
@@ -88,22 +90,25 @@ const getFocusedRunDiffs = (
 ): ReadonlyArray<FocusedRunDiff> =>
   resolveWalkthroughHunkRuns(item, files).flatMap((run) => {
     const focused = focusChangedFileForHunks(run.resolved.file, run.resolved.section, run.hunks);
-    return focused
-      ? [
-          {
-            file: focused,
-            note: getWalkthroughRunNote(item, run),
-            reviewIdentity: getWalkthroughReviewIdentity(
-              run.resolved.file,
-              run.hunks.flatMap((hunk) =>
-                hunk.kind === 'synthetic'
-                  ? getSectionReviewHunkIds(run.resolved.file, run.resolved.section)
-                  : [hunk.id],
-              ),
-            ),
-          },
-        ]
-      : [];
+    if (!focused) {
+      return [];
+    }
+    const notes = getWalkthroughRunNotes(item, run, focused.sections[0]);
+    return [
+      {
+        file: focused,
+        hunkNotes: notes.inline,
+        note: notes.header,
+        reviewIdentity: getWalkthroughReviewIdentity(
+          run.resolved.file,
+          run.hunks.flatMap((hunk) =>
+            hunk.kind === 'synthetic'
+              ? getSectionReviewHunkIds(run.resolved.file, run.resolved.section)
+              : [hunk.id],
+          ),
+        ),
+      },
+    ];
   });
 
 export type RenderWalkthroughDiffBlocks = (
@@ -213,13 +218,14 @@ const createWalkthroughBlocks = (
 
     firstBlockIdByStop[stop.index] = `walkthrough:${stop.id}:0`;
 
-    focusedRuns.forEach(({ file, note, reviewIdentity }, runIndex) => {
+    focusedRuns.forEach(({ file, hunkNotes, note, reviewIdentity }, runIndex) => {
       const blockId = `walkthrough:${stop.id}:${runIndex}`;
       stopIndexByBlockId.set(blockId, stop.index);
       blocks.push({
         file,
         header: runIndex === 0 ? <StopHeader stop={stop} /> : null,
         headerSelected: stop.index === currentIndex,
+        hunkNotes,
         id: blockId,
         itemIdPrefix: blockId,
         note,
@@ -253,19 +259,22 @@ const createSupportBlocks = (
   const blocks: Array<ReviewDiffBlock> = [];
   for (const group of walkthroughView.supportByReason) {
     for (const item of group.files) {
-      getFocusedRunDiffs(item, files).forEach(({ file, note, reviewIdentity }, runIndex) => {
-        const blockId = `walkthrough:support:${item.id}:${runIndex}`;
-        const isFirstBlock = blocks.length === 0;
-        blocks.push({
-          file,
-          header: isFirstBlock ? <SupportHeader /> : null,
-          headerSelected: selected,
-          id: blockId,
-          itemIdPrefix: blockId,
-          note: note ?? item.note ?? group.reason,
-          reviewIdentity,
-        });
-      });
+      getFocusedRunDiffs(item, files).forEach(
+        ({ file, hunkNotes, note, reviewIdentity }, runIndex) => {
+          const blockId = `walkthrough:support:${item.id}:${runIndex}`;
+          const isFirstBlock = blocks.length === 0;
+          blocks.push({
+            file,
+            header: isFirstBlock ? <SupportHeader /> : null,
+            headerSelected: selected,
+            hunkNotes,
+            id: blockId,
+            itemIdPrefix: blockId,
+            note: note ?? item.note ?? group.reason,
+            reviewIdentity,
+          });
+        },
+      );
     }
   }
 

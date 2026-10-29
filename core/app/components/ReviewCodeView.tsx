@@ -64,6 +64,7 @@ import type {
   ReviewAnnotationMetadata,
   ReviewComment,
   ReviewCommentAnnotationMetadata,
+  WalkthroughHunkNoteAnnotationMetadata,
   ReviewIdentity,
   ReviewScrollBehavior,
   ReviewScrollTarget,
@@ -100,8 +101,9 @@ import {
 } from '../../lib/identifier-navigation.ts';
 import { getItemVersion } from '../../lib/item-version.ts';
 import { isNativeInputTarget, isPrimaryModifier } from '../../lib/keyboard.ts';
-import { sanitizeMarkdownImages } from '../../lib/markdown.tsx';
+import { renderInlineMarkdown, sanitizeMarkdownImages } from '../../lib/markdown.tsx';
 import { isGeneratedWalkthroughFile } from '../../lib/narrative-walkthrough-diff.js';
+import type { WalkthroughInlineNote } from '../../lib/narrative-walkthrough.ts';
 import {
   getCommentKey,
   getReviewCommentLineLabel,
@@ -360,7 +362,9 @@ function CodeViewHeader({
           </span>
           {file.oldPath ? <span className="codiff-file-old-path">{file.oldPath}</span> : null}
           {walkthroughNote ? (
-            <span className="codiff-file-note">{walkthroughNote.reason}</span>
+            <span className="codiff-file-note" title={walkthroughNote.reason}>
+              {renderInlineMarkdown(walkthroughNote.reason)}
+            </span>
           ) : null}
         </span>
       </div>
@@ -2335,6 +2339,16 @@ function CodeQualityAnnotation({
   );
 }
 
+function WalkthroughHunkNote({
+  annotation,
+}: {
+  annotation: DiffLineAnnotation<WalkthroughHunkNoteAnnotationMetadata>;
+}) {
+  return (
+    <div className="walkthrough-hunk-note">{renderInlineMarkdown(annotation.metadata.body)}</div>
+  );
+}
+
 const scrollTargetRetryFrameLimit = 90;
 
 const getEffectiveScrollBehavior = (behavior: ReviewScrollBehavior) =>
@@ -2366,6 +2380,7 @@ type FileReviewDiffBlock = {
   fileSelected?: boolean;
   header?: ReactNode;
   headerSelected?: boolean;
+  hunkNotes?: ReadonlyArray<WalkthroughInlineNote>;
   id: string;
   itemIdPrefix?: string;
   note?: string;
@@ -3046,9 +3061,21 @@ export function ReviewCodeView({
         const reviewVersionPrefix = `${isMarkdownFilePath(file.path) ? markdownContentsVersion : 0}:${itemVersionByKey[reviewKey] ?? 0}:${block.id}:${
           reviewIdentity.fingerprint
         }:${reviewKey}:${section.id}:${commentLayoutPassByItem[id] ?? 0}`;
+        const hunkNoteAnnotations = (block.hunkNotes ?? [])
+          .filter(({ lineNumber, side }) => lineIsVisibleInFileDiff(fileDiff, side, lineNumber))
+          .map(
+            ({ body, lineNumber, side }) =>
+              ({
+                lineNumber,
+                metadata: { body, type: 'walkthrough-hunk-note' },
+                side,
+              }) satisfies DiffLineAnnotation<ReviewAnnotationMetadata>,
+          );
         const sectionStateVersionKey = `${isCollapsed ? 'collapsed' : 'open'}:${
           isViewed ? 'viewed' : 'pending'
-        }:${index}:${fontLayoutKey}:${walkthroughNote?.reason ?? ''}`;
+        }:${index}:${fontLayoutKey}:${walkthroughNote?.reason ?? ''}:${JSON.stringify(
+          hunkNoteAnnotations,
+        )}`;
         const annotationMap = new Map<string, DiffLineAnnotation<ReviewAnnotationMetadata>>();
         const globalSectionComments = commentsBySection.get(section.id) ?? [];
         const visibleGlobalComments = globalSectionComments.filter(
@@ -3175,9 +3202,10 @@ export function ReviewCodeView({
                 markdownPreview.oldContents,
                 editingMarkdownSections.has(section.id),
                 [...annotationMap.values()],
+                hunkNoteAnnotations,
               ]),
               [
-                ...[...annotationMap.values()].map((annotation) => ({
+                ...[...annotationMap.values(), ...hunkNoteAnnotations].map((annotation) => ({
                   ...annotation,
                   lineNumber: 1,
                 })),
@@ -3208,7 +3236,11 @@ export function ReviewCodeView({
           continue;
         }
         nextItems.push({
-          annotations: [...annotationMap.values(), ...codeQualityAnnotations],
+          annotations: [
+            ...hunkNoteAnnotations,
+            ...annotationMap.values(),
+            ...codeQualityAnnotations,
+          ],
           collapsed: isCollapsed,
           fileDiff,
           id,
@@ -4917,6 +4949,14 @@ export function ReviewCodeView({
 
       if (annotation.metadata.type === 'walkthrough-header') {
         return annotation.metadata.header;
+      }
+
+      if (annotation.metadata.type === 'walkthrough-hunk-note') {
+        return (
+          <WalkthroughHunkNote
+            annotation={annotation as DiffLineAnnotation<WalkthroughHunkNoteAnnotationMetadata>}
+          />
+        );
       }
 
       if (annotation.metadata.type === 'code-quality') {
