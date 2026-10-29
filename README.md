@@ -125,8 +125,11 @@ If a step fails, the script prints the path of a log with its full output
 (`$TMPDIR/codiff-install-fork.log`); send that along when asking for help.
 
 To check that the fork is the Codiff you are running, look for `-fork` in the version:
-`codiff --version` prints something like `codiff v1.16.0-fork`, and Codiff > About Codiff shows
-the same.
+`codiff --version` prints something like `codiff v1.18.3-fork.19+27e58c8`, and Codiff > About
+Codiff shows the same. The parts after `-fork` identify the build: `19` is the number of commits
+since the upstream `v1.18.3` release and `27e58c8` is the commit it was built from. A build from
+uncommitted edits ends in `.dirty`. Without the upstream release tags (`git fetch upstream --tags`)
+the count is left out.
 
 ### Updates
 
@@ -143,6 +146,9 @@ gone, and `codiff update` exits with an error. To update, run `git pull` and the
   hunks, expanding unchanged lines no longer blanks the window. The stop's old side is the old file
   with the file's other hunks applied, so old-side line numbers in such a stop can differ from the
   original file; new-side line numbers are exact.
+- **Walkthrough hunk notes:** a stop's per-hunk notes show inside the diff under the hunk they
+  describe, instead of being joined into one line in the file header and cut off. Inline code in
+  notes renders as code.
 
 ## Why Codiff
 
