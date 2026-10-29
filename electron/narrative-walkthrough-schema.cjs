@@ -31,7 +31,7 @@ const hunkGroupProperties = {
   id: { type: 'string' },
   notes: {
     description:
-      'Optional short header notes for selected hunk ids. Codiff renders each note under that focused diff header.',
+      'Optional one-line notes for selected hunk ids. Codiff renders each note under the first block of changed lines in its hunk.',
     items: {
       additionalProperties: false,
       properties: {

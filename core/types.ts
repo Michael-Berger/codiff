@@ -550,7 +550,7 @@ export type WalkthroughHunkGroup = {
   hunks: ReadonlyArray<WalkthroughHunk>;
   /** Stable within the document, e.g. 's1'. */
   id: string;
-  /** Optional header notes for individual hunk ids in this item. */
+  /** Optional notes shown under individual hunks in this item. */
   notes?: ReadonlyArray<WalkthroughHunkNote>;
   /** Short, plain-text gist of the slice. */
   summary?: string;

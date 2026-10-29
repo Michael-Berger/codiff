@@ -36,8 +36,11 @@ choose.
   hunks, usually write 1-2 stops. Some ids are synthetic hunks for binary, deferred,
   metadata-only, or otherwise non-textual changes; treat them like normal hunk ids and explain why
   that review unit matters.
-- **`notes[]`** — optional short header notes for individual focused hunks: `{ hunkId, body }`.
-  Use these when a specific hunk needs a label under its file header.
+- **`notes[]`** — optional one-line notes for individual hunks: `{ hunkId, body }`. Codiff shows
+  each note inside the diff, under that hunk's first block of changed lines. Use one when a stop
+  groups several hunks and one of them needs its own explanation the stop's prose cannot point at,
+  such as why that hunk differs from its siblings or what a non-obvious line protects. Skip notes
+  on single-hunk stops and on hunks the prose already explains; a note must not repeat the prose.
 - **`support[]`** — changed hunks that should stay off the main path. Use it for generated files,
   lockfiles, snapshots, docs-only changes, and repeated mechanical edits unless they are essential
   to review. Codiff adds any omitted live-diff hunks to support. Generated-like files are one
