@@ -166,12 +166,14 @@ step "Installing the Claude Code skill"
 link "$app_root/claude/skills/codiff" "$install_home/.claude/skills/codiff"
 
 step "Configuring review comments"
-# Left by an upstream install's update check; the CLI wrapper would keep showing its notice.
-rm -f "$install_home/.codiff/update-state.json"
 HOME="$install_home" node - "$repo" <<'NODE'
-const { copyFileSync, existsSync } = require('node:fs');
+const { copyFileSync, existsSync, rmSync } = require('node:fs');
+const { join } = require('node:path');
 const repo = process.argv[2];
 const { getConfigPath, readConfig, writeConfig } = require(`${repo}/electron/config.cjs`);
+const { getConfigDir } = require(`${repo}/electron/config-dir.cjs`);
+// Left by an upstream install's update check; the CLI wrapper would keep showing its notice.
+rmSync(join(getConfigDir(), 'update-state.json'), { force: true });
 const commentCommand =
   'codiff-comment --target {target} --file {file} --path {path} --line {line} --end {endLine} --snippet {snippet} --send';
 const config = readConfig();
